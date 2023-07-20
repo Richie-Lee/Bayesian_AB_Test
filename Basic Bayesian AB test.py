@@ -191,11 +191,11 @@ def metrics():
     
     # Evaluate how often treatment outperformes control
     treatment_won = [t - c >= hypotheses['mde'] for c, t in zip(C["post_sample"], T["post_sample"])]
-    chance_of_beating_control = np.mean(treatment_won)
-    print(f"posterior: P[T - C >= mde]: {round(chance_of_beating_control, 2)}")
+    prob_TE_better_mde = round(np.mean(treatment_won), 2)
+    print(f"posterior: P[T - C >= mde]: {prob_TE_better_mde}")
     treatment_won = [t >= c for c, t in zip(C["post_sample"], T["post_sample"])]
-    chance_of_beating_control = np.mean(treatment_won)
-    print(f"posterior: P[T >= C]: {round(chance_of_beating_control, 2)}")
+    prob_TE_positive = round(np.mean(treatment_won), 2)
+    print(f"posterior: P[T >= C]: {prob_TE_positive}")
     
     
     
@@ -220,9 +220,9 @@ def metrics():
     
     # print(f"\nLoss (acceptable = {round(treatment_effect['prior'] * _relative_loss_theshold, 4)}):\n- Treatment: {loss_treatment}\n- Control: {loss_control}")
     
-    return treatment_effect, loss_control, loss_treatment
+    return treatment_effect, loss_control, loss_treatment, prob_TE_better_mde, prob_TE_positive
 
-treatment_effect, C["loss"], T["loss"] = metrics()
+treatment_effect, C["loss"], T["loss"], treatment_effect["p[TE>mde]"], treatment_effect["p[T>C]"] = metrics()
 
 
 # Set the style & colors for the plots
