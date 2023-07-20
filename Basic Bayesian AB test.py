@@ -22,7 +22,7 @@ _start_time = datetime.now()
 """
 Part 0: Settings & Hyperparameters
 """
- random.seed(0)
+random.seed(0)
 
 # H0: effect = 0, H1: effect = mde (note, not composite! though still practical for that purpose)
 hypotheses = {"null": 0.6, "alt": 0.65, "mde": 0.05}
@@ -37,7 +37,7 @@ prior = {"n": 1000, "weight": 25, "prior_control": 0.6, "prior_treatment": 0.7}
 
 # Early Stopping parameters (criteria in % for intuitive use-cases)
 sequential_testing = True
-early_stopping = {"stopping_criteria_prob": 95, "interim_test_interval": 10, "warm-up": 100}
+early_stopping = {"stopping_criteria_prob": 95, "interim_test_interval": 10}
 
 """
 Part 1: Generate Data
@@ -115,7 +115,7 @@ def early_stopping_sampling(treatment):
         print(f"n: {n_observed}/{T['n']}, BF: {bayes_factor}")
         
         # Stopping criteria
-        if (bayes_factor > k or bayes_factor < 1/k) and n_observed >= early_stopping["warmup"]:
+        if (bayes_factor > k or bayes_factor < 1/k):
             early_stop = True
         
         interim_tests.append((n_observed, bayes_factor))
