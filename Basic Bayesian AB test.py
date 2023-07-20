@@ -21,7 +21,7 @@ random.seed(0)
 hypotheses = {"null": 0.6, "alt": 0.65}
 C = {"n": 1000, "true_prob": 0.6} # control
 T = {"n": 1000, "true_prob": 0.64} # treatment
-prior = {"n": 100, "weight": 25, "prior_prob": 0.6}
+prior = {"n": 100, "weight": 25, "prior_control": 0.6, "prior_treatment": 0.6}
 
 
 
@@ -94,7 +94,8 @@ def beta_prior(prior_prob, weight, n):
     samples = beta_prior.rvs(size = n)    
     return beta_prior, samples, a, b
 
-prior["dist"], prior["sample"], prior["beta_a"], prior["beta_b"] = beta_prior(prior["prior_prob"], prior["weight"], prior["n"])
+C["prior_dist"], C["prior_sample"], C["prior_beta_a"], C["prior_beta_b"] = beta_prior(prior["prior_control"], prior["weight"], prior["n"])
+T["prior_dist"], T["prior_sample"], T["prior_beta_a"], T["prior_beta_b"] = beta_prior(prior["prior_treatment"], prior["weight"], prior["n"])
 
 
 
@@ -107,10 +108,8 @@ def beta_posterior(prior_a, prior_b, converted, n):
     samples = beta_posterior.rvs(size = n) 
     return beta_posterior, samples
 
-posterior = dict()
-posterior["dist"], posterior["sample"] = beta_posterior(prior["beta_a"], prior["beta_b"], T["converted"], T["n"])
-
-
+C["post_dist"], C["post_sample"] = beta_posterior(C["prior_beta_a"], C["prior_beta_b"], C["converted"], C["n"])
+T["post_dist"], T["post_sample"] = beta_posterior(T["prior_beta_a"], T["prior_beta_b"], T["converted"], T["n"])
 
 
 
