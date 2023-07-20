@@ -12,6 +12,7 @@ from datetime import datetime
 # Track total runtime
 _start_time = datetime.now()
  
+true_effect = 0.05
 
 # Define a function to run the code and store the results
 def run_code_with_seed(seed):
@@ -28,7 +29,7 @@ def run_code_with_seed(seed):
      
     # Define Control & Treatment DGP (Bernoulli distributed)
     C = {"n": 1000, "true_prob": 0.6} 
-    T = {"n": 1000, "true_prob": 0.65}
+    T = {"n": 1000, "true_prob": C["true_prob"] + true_effect}
      
     # Define Prior (Beta distributed -> Conjugate)
     prior = {"n": 1000, "weight": 25, "prior_control": 0.6, "prior_treatment": 0.7}
@@ -227,7 +228,6 @@ for _i in range(num_runs):
     results.append(_result)
     results_interim_tests.append(interim_tests)
 
-
 def early_stopping_dist():
     # plot stopping criteria
     plt.axhline(y = 1, color = "black", linestyle = "--", linewidth = "0.6")
@@ -248,29 +248,38 @@ def early_stopping_dist():
     
     plt.xlabel("Sample size")
     plt.ylabel("Bayes_factor")
-    plt.title(f"Bayes Factors during interim testing ({num_runs})")
-    plt.plot()
+    plt.title(f"Distributions of early stopping (n = {num_runs})")
+    plt.show()
 
 early_stopping_dist()
 
 
-# def plot_posteriors():
+results = pd.DataFrame(results)
+
+def plot_prob_distributions():    
+    sns.kdeplot(results["P[TE>mde]"], label = "post P[TE > mde]", fill = True, alpha = 0.5, clip=(0, 1))
+    sns.kdeplot(results["P[T>C]"], label = "post P[T > C]", fill = True, alpha = 0.5, clip=(0, 1))
+    sns.kdeplot(results["prob_H1"], label = "P[H1|BF]", fill = True, alpha = 0.5, clip=(0, 1))
+    plt.legend(loc='upper right', bbox_to_anchor=(0.3, -0.1))
+    plt.xlabel('Probability')
+    plt.title(f"Distributions of predicted probabilities (n = {num_runs})")
+    plt.show()
+
+plot_prob_distributions()
+
+
+
+def plot_treatment_effect():  
+    plt.hist(results["treatment_effect"], bins = 20, alpha = 0.5, density=True, color = "green")
+    sns.kdeplot(results["treatment_effect"], label = "Estimated", fill = True, alpha = 0.3, color = "green")
+    plt.axvline(x = true_effect, color = "black", label = "true TE")
     
-#     for i in results:
-        
-#     # Plot the histogram + kernel (Posterior)
-#     plt.hist(C["post_sample"], bins = 30, alpha = 0.5, density=True, color = _colors[0])
-#     plt.hist(T["post_sample"], bins = 30, alpha = 0.5, density=True, color = _colors[1])
-#     sns.kdeplot(C["post_sample"], label='Control', fill = False, color = _colors[0])
-#     sns.kdeplot(T["post_sample"], label='Treatment', fill = False, color = _colors[1])
-#     plt.xlabel('Probability')
-#     plt.legend()
-#     plt.title("Samples from posterior distributions")
-#     plt.show()
+    plt.legend()
+    plt.xlabel('Probability')
+    plt.title(f"Distributions of treatment effect estimation (n = {num_runs})")
+    plt.show()
 
-# plot_posteriors()
-
-
+plot_treatment_effect()
 
 
 
