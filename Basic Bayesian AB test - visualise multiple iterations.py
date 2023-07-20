@@ -209,21 +209,23 @@ def run_code_with_seed(seed):
         "treatment_effect": treatment_effect["estimated"],
         "P[T>C]" : treatment_effect["p[T>C]"],
         "P[TE>mde]" : treatment_effect["p[TE>mde]"],
-        "interim_tests": T["interim_tests"]
     }
     
-    return result, early_stopping
+    interim_tests = T["interim_tests"]
+    
+    return result, early_stopping, interim_tests
 
 # Define the number of runs and a list to store the results
-num_runs = 10
+num_runs = 50
 results = []
+results_interim_tests = []
 
 # Run the code with different seeds and store the results
 for _i in range(num_runs):
     _seed = _i  # Or use any other method to generate different seeds
-    _result, early_stopping = run_code_with_seed(_seed)
+    _result, early_stopping, interim_tests = run_code_with_seed(_seed)
     results.append(_result)
-
+    results_interim_tests.append(interim_tests)
 
 
 def early_stopping_dist():
@@ -232,10 +234,10 @@ def early_stopping_dist():
     plt.axhline(y = early_stopping["k"], color = "black", linestyle = "--", linewidth = "0.6")
     plt.axhline(y = 1/early_stopping["k"], color = "black", linestyle = "--", linewidth = "0.6")
         
-    for i in results:
-        x, y = zip(*i["interim_tests"])
+    for i in range(len(results_interim_tests)):
+        x, y = zip(*results_interim_tests[i])
         
-        if i["bayes_factor"] > 1: # Reject H0 (Effect discovery)
+        if results[i]["bayes_factor"] > 1: # Reject H0 (Effect discovery)
             color_i = "blue"
         else: # Accept H0 (No effect)
             color_i = "red"
@@ -250,6 +252,26 @@ def early_stopping_dist():
     plt.plot()
 
 early_stopping_dist()
+
+
+# def plot_posteriors():
+    
+#     for i in results:
+        
+#     # Plot the histogram + kernel (Posterior)
+#     plt.hist(C["post_sample"], bins = 30, alpha = 0.5, density=True, color = _colors[0])
+#     plt.hist(T["post_sample"], bins = 30, alpha = 0.5, density=True, color = _colors[1])
+#     sns.kdeplot(C["post_sample"], label='Control', fill = False, color = _colors[0])
+#     sns.kdeplot(T["post_sample"], label='Treatment', fill = False, color = _colors[1])
+#     plt.xlabel('Probability')
+#     plt.legend()
+#     plt.title("Samples from posterior distributions")
+#     plt.show()
+
+# plot_posteriors()
+
+
+
 
 
 
