@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 
 import scipy.stats as stats
 import random
-
 from datetime import datetime
+
 
 # Track total runtime
 _start_time = datetime.now()
@@ -15,13 +15,19 @@ _start_time = datetime.now()
 """
 Part 0: Settings & Hyperparameters
 """
-# random.seed(0)
+random.seed(0)
 
 # H0: effect = 0, H1: effect = mde (note, not composite! though still practical for that purpose)
-hypotheses = {"null": 0.6, "alt": 0.65}
-C = {"n": 1000, "true_prob": 0.6} # control
-T = {"n": 1000, "true_prob": 0.64} # treatment
-prior = {"n": 1000, "weight": 25, "prior_control": 0.6, "prior_treatment": 0.64}
+hypotheses = {"null": 0.6, "alt": 0.7}
+mde = 0.05
+_relative_loss_theshold = 0.05 # Used for loss -> e.g. 0.05 = 5% of prior effect deviation is accepted 
+
+# Define Control & Treatment DGP (Bernoulli distributed)
+C = {"n": 1000, "true_prob": 0.6} 
+T = {"n": 1000, "true_prob": 0.65}
+
+# Define Prior (Beta distributed -> Conjugate)
+prior = {"n": 1000, "weight": 5, "prior_control": 0.6, "prior_treatment": 0.7}
 
 
 
@@ -78,8 +84,7 @@ def log_likelihood_ratio_test(treatment):
     return bayes_factor, alt_log_likelihood, null_log_likelihood
 
 T["bayes_factor"], T["log_likelihood_H1"], T["log_likelihood_H0"] = log_likelihood_ratio_test(T["sample"]["converted"])
-prob_H1 = round(T["bayes_factor"] / (T["bayes_factor"] + 1), 3)
-print(f"\nBayes Factor: {T['bayes_factor']} w/ Probability H1: {prob_H1}")
+
 
 
 """
@@ -117,39 +122,58 @@ T["post_dist"], T["post_sample"] = beta_posterior(T["prior_beta_a"], T["prior_be
 Part 5
 """
 
+# Print hypotheses:
+print(f"\n===============================\nH0: y = {hypotheses['null']}, H1: y = {hypotheses['alt']}\nmde = {mde} \n===============================")
+
 def metrics():
+    prob_H1 = round(T["bayes_factor"] / (T["bayes_factor"] + 1), 3)
+    print(f"\nInformal probabilities: \nP[H1|BF]: {prob_H1}")
+    
     # Evaluate how often treatment outperformes control
-    treatment_won = [i <= j for i, j in zip(C["post_sample"], T["post_sample"])]
+    treatment_won = [t - c >= mde for c, t in zip(C["post_sample"], T["post_sample"])]
     chance_of_beating_control = np.mean(treatment_won)
-    print(f"Posterior probability of beating control: {round(chance_of_beating_control, 2)} (Quick & Dirty)")
+    print(f"P[T - C >= mde]: {round(chance_of_beating_control, 2)}")
     
     # Get treatment effect measurement
     treatment_effect = { 
             "true": round(T["true_prob"] - C["true_prob"], 4),
             "observed": round(T["sample_conversion_rate"] - C["sample_conversion_rate"], 4),
-            "estimated": round(T["post_sample"].mean() - C["post_sample"].mean(), 4)
+            "estimated": round(T["post_sample"].mean() - C["post_sample"].mean(), 4),
+            "prior": round(prior["prior_treatment"] - prior["prior_control"], 4)
         }
     
-    print(f"Treatment effect:\n- true: {treatment_effect['true']}\n- observed: {treatment_effect['observed']}\n- posterior: {treatment_effect['estimated']}")
+    print(f"\nTreatment effect:\n- true: {treatment_effect['true']}\n- observed: {treatment_effect['observed']}\n- prior: {treatment_effect['prior']}\n- posterior: {treatment_effect['estimated']}")
     
-    return treatment_effect
+    # Compute loss (Reward/Penalise not choosing probability closest to the truth, by difference |T-C|)
+    loss_control = [max(j - i, 0) for i,j in zip(C["post_sample"], T["post_sample"])]
+    loss_control = [int(i)*j for i,j in zip(treatment_won, loss_control)]
+    loss_control = round(np.mean(loss_control), 4)
+    
+    loss_treatment = [max(i - j, 0) for i,j in zip(C["post_sample"], T["post_sample"])]
+    loss_treatment = [(1 - int(i))*j for i,j in zip(treatment_won, loss_treatment)]
+    loss_treatment = round(np.mean(loss_treatment), 4)
+    
+    print(f"\nLoss (acceptable = {round(treatment_effect['prior'] * _relative_loss_theshold, 4)}):\n- Treatment: {loss_treatment}\n- Control: {loss_control}")
+    
+    return treatment_effect, loss_control, loss_treatment
 
-treatment_effect = metrics()
+treatment_effect, C["loss"], T["loss"] = metrics()
+
+
+# Set the style & colors for the plots
+sns.set_style('darkgrid')
+_colors = plt.rcParams['axes.prop_cycle'].by_key()['color'] 
 
 def plot():
-    # Kernel density
-    sns.kdeplot(C["post_sample"], label='Control', fill=True)
-    sns.kdeplot(T["post_sample"], label='Treatment', fill=True)
+    # Plot the histogram + kernel (Posterior)
+    plt.hist(C["post_sample"], bins = 30, alpha = 0.5, density=True, color = _colors[0])
+    plt.hist(T["post_sample"], bins = 30, alpha = 0.5, density=True, color = _colors[1])
+    sns.kdeplot(C["post_sample"], label='Control', fill = False, color = _colors[0])
+    sns.kdeplot(T["post_sample"], label='Treatment', fill = False, color = _colors[1])
     plt.xlabel('Probability')
-    plt.title("Sampling from posterior distributions")
     plt.legend()
+    plt.title("Samples from posterior distributions")
     plt.show()
-    
-    # Plot the histogram 
-    plt.hist(C["post_sample"], bins=30, alpha=0.5, label='Control', density=True)
-    plt.hist(T["post_sample"], bins=30, alpha=0.5, label='Treatment', density=True)
-    plt.xlabel('Probability')
-    plt.legend()
     
 plot()
 
