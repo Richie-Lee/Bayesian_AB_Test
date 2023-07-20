@@ -15,13 +15,13 @@ _start_time = datetime.now()
 """
 Part 0: Settings & Hyperparameters
 """
-random.seed(0)
+# random.seed(0)
 
 # H0: effect = 0, H1: effect = mde (note, not composite! though still practical for that purpose)
 hypotheses = {"null": 0.6, "alt": 0.65}
 C = {"n": 1000, "true_prob": 0.6} # control
 T = {"n": 1000, "true_prob": 0.64} # treatment
-prior = {"n": 100, "weight": 25, "prior_control": 0.6, "prior_treatment": 0.6}
+prior = {"n": 1000, "weight": 25, "prior_control": 0.6, "prior_treatment": 0.64}
 
 
 
@@ -73,13 +73,13 @@ def log_likelihood_ratio_test(treatment):
 
     # Compute BF: H1|H0
     log_bayes_factor = alt_log_likelihood - null_log_likelihood
-    bayes_factor = np.exp(log_bayes_factor)
+    bayes_factor = round(np.exp(log_bayes_factor), 3)
 
     return bayes_factor, alt_log_likelihood, null_log_likelihood
 
 T["bayes_factor"], T["log_likelihood_H1"], T["log_likelihood_H0"] = log_likelihood_ratio_test(T["sample"]["converted"])
-log_Prob_H1 = round(T["bayes_factor"] / (T["bayes_factor"] + 1) * 100, 3)
-
+prob_H1 = round(T["bayes_factor"] / (T["bayes_factor"] + 1), 3)
+print(f"\nBayes Factor: {T['bayes_factor']} w/ Probability H1: {prob_H1}")
 
 
 """
@@ -113,7 +113,46 @@ T["post_dist"], T["post_sample"] = beta_posterior(T["prior_beta_a"], T["prior_be
 
 
 
+"""
+Part 5
+"""
+
+def metrics():
+    # Evaluate how often treatment outperformes control
+    treatment_won = [i <= j for i, j in zip(C["post_sample"], T["post_sample"])]
+    chance_of_beating_control = np.mean(treatment_won)
+    print(f"Posterior probability of beating control: {round(chance_of_beating_control, 2)} (Quick & Dirty)")
+    
+    # Get treatment effect measurement
+    treatment_effect = { 
+            "true": round(T["true_prob"] - C["true_prob"], 4),
+            "observed": round(T["sample_conversion_rate"] - C["sample_conversion_rate"], 4),
+            "estimated": round(T["post_sample"].mean() - C["post_sample"].mean(), 4)
+        }
+    
+    print(f"Treatment effect:\n- true: {treatment_effect['true']}\n- observed: {treatment_effect['observed']}\n- posterior: {treatment_effect['estimated']}")
+    
+    return treatment_effect
+
+treatment_effect = metrics()
+
+def plot():
+    # Kernel density
+    sns.kdeplot(C["post_sample"], label='Control', fill=True)
+    sns.kdeplot(T["post_sample"], label='Treatment', fill=True)
+    plt.xlabel('Probability')
+    plt.title("Sampling from posterior distributions")
+    plt.legend()
+    plt.show()
+    
+    # Plot the histogram 
+    plt.hist(C["post_sample"], bins=30, alpha=0.5, label='Control', density=True)
+    plt.hist(T["post_sample"], bins=30, alpha=0.5, label='Treatment', density=True)
+    plt.xlabel('Probability')
+    plt.legend()
+    
+plot()
 
 # Print execution time
-print(f"===============================\nTotal runtime:  {datetime.now() - _start_time}")
+print(f"\n===============================\nTotal runtime:  {datetime.now() - _start_time}")
 
