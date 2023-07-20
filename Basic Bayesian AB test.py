@@ -18,8 +18,7 @@ Part 0: Settings & Hyperparameters
 random.seed(0)
 
 # H0: effect = 0, H1: effect = mde (note, not composite! though still practical for that purpose)
-hypotheses = {"null": 0.6, "alt": 0.7}
-mde = 0.05
+hypotheses = {"null": 0.6, "alt": 0.7, "mde": 0.05}
 _relative_loss_theshold = 0.05 # Used for loss -> e.g. 0.05 = 5% of prior effect deviation is accepted 
 
 # Define Control & Treatment DGP (Bernoulli distributed)
@@ -28,7 +27,6 @@ T = {"n": 1000, "true_prob": 0.65}
 
 # Define Prior (Beta distributed -> Conjugate)
 prior = {"n": 1000, "weight": 5, "prior_control": 0.6, "prior_treatment": 0.7}
-
 
 
 """
@@ -40,15 +38,8 @@ def get_bernoulli_sample(mean, n):
     samples = [1 if random.random() < mean else 0 for _ in range(n)]
     converted = sum(samples)
     mean = converted/n
-
-    # Create a DataFrame
-    data = {
-        "userId": range(1, n + 1),
-        "converted": samples
-    }
-    data = pd.DataFrame(data)
     
-    return data, converted, mean 
+    return samples, converted, mean 
 
 C["sample"], C["converted"], C["sample_conversion_rate"] = get_bernoulli_sample(mean = C["true_prob"], n = C["n"])
 T["sample"], T["converted"], T["sample_conversion_rate"] = get_bernoulli_sample(mean = T["true_prob"], n = T["n"])
@@ -81,11 +72,74 @@ def log_likelihood_ratio_test(treatment):
     log_bayes_factor = alt_log_likelihood - null_log_likelihood
     bayes_factor = round(np.exp(log_bayes_factor), 3)
 
-    return bayes_factor, alt_log_likelihood, null_log_likelihood
+    return bayes_factor
 
-T["bayes_factor"], T["log_likelihood_H1"], T["log_likelihood_H0"] = log_likelihood_ratio_test(T["sample"]["converted"])
+T["bayes_factor"] = log_likelihood_ratio_test(T["sample"])
 
 
+
+
+"""
+TO DO: warmup period + plot + cleanup code + sanity checks
+Part 2.5: Early Stopping
+"""
+# Early Stopping criteria (give in %)
+early_stopping = {"stopping_criteria_prob": 95, "interim_test_interval": 10}
+
+def early_stopping_sampling(treatment):
+    # Stopping criteria (symmetric) - computed using hyperparameter confidence %
+    k =  early_stopping["stopping_criteria_prob"] / (100 - early_stopping["stopping_criteria_prob"])
+    
+    # Initialise
+    bayes_factor, n_test = 0, 0
+    early_stop = False
+    all_bayes_factors = []
+    
+    while early_stop == False:
+        # sample        
+        n_test += 1
+        n_observed = n_test * early_stopping["interim_test_interval"]
+        
+        # Full data set utilised
+        if n_observed > T["n"]:
+            break
+        
+        data_observed = treatment[:n_observed]
+        bayes_factor = log_likelihood_ratio_test(data_observed)
+        print(f"n: {n_observed}/{T['n']}, BF: {bayes_factor}")
+        
+        # Stopping criteria
+        if bayes_factor > k or bayes_factor < 1/k:
+            early_stop = True
+        
+        all_bayes_factors.append((n_observed, bayes_factor))
+    
+    T_ES = {
+        "sample": data_observed,
+        "converted": sum(data_observed),
+        "sample_conversion_rate": round(sum(data_observed) / n_observed, 3),
+        "bayes_factor": bayes_factor,
+        "bayes_factor_full": all_bayes_factors,
+        "early_stop": early_stop,
+        "n": n_observed,
+        "n_test": n_test,
+        "true_prob": T["true_prob"]
+        }
+    
+    C_ES = {
+        "sample": C["sample"][:n_observed],
+        "converted": sum(C["sample"][:n_observed]),
+        "sample_conversion_rate": round(sum(C["sample"][:n_observed]) / n_observed, 3),
+        "n": n_observed,
+        "true_prob": T["true_prob"]
+        }
+        
+        
+    return T_ES, C_ES
+
+T_ES, C_ES = early_stopping_sampling(T["sample"])
+
+raise SystemExit(0)
 
 """
 Part 3: Priors (Conjugate)
@@ -123,14 +177,14 @@ Part 5
 """
 
 # Print hypotheses:
-print(f"\n===============================\nH0: y = {hypotheses['null']}, H1: y = {hypotheses['alt']}\nmde = {mde} \n===============================")
+print(f"\n===============================\nH0: y = {hypotheses['null']}, H1: y = {hypotheses['alt']}\nmde = {hypotheses['mde']} \n===============================")
 
 def metrics():
     prob_H1 = round(T["bayes_factor"] / (T["bayes_factor"] + 1), 3)
     print(f"\nInformal probabilities: \nP[H1|BF]: {prob_H1}")
     
     # Evaluate how often treatment outperformes control
-    treatment_won = [t - c >= mde for c, t in zip(C["post_sample"], T["post_sample"])]
+    treatment_won = [t - c >= hypotheses['mde'] for c, t in zip(C["post_sample"], T["post_sample"])]
     chance_of_beating_control = np.mean(treatment_won)
     print(f"P[T - C >= mde]: {round(chance_of_beating_control, 2)}")
     
