@@ -81,18 +81,37 @@ T["bayes_factor"], T["log_likelihood_H1"], T["log_likelihood_H0"] = log_likeliho
 log_Prob_H1 = round(T["bayes_factor"] / (T["bayes_factor"] + 1) * 100, 3)
 
 
+
 """
-Part 3: Priors
+Part 3: Priors (Conjugate)
 """
 
 def beta_prior(prior_prob, weight, n):
     # Sample from Beta distribution: B(weight(prior belief) + 1, weight(1 - prior belief) + 1)
     a = round(prior_prob, 1) * weight + 1
     b = (1 - round(prior_prob, 1)) * weight + 1
-    samples = stats.beta(a, b).rvs(size = n)    
-    return samples, a, b
+    beta_prior = stats.beta(a, b)
+    samples = beta_prior.rvs(size = n)    
+    return beta_prior, samples, a, b
 
-prior["sample"], prior["beta_a"], prior["beta_b"] = beta_prior(prior["prior_prob"], prior["weight"], prior["n"])
+prior["dist"], prior["sample"], prior["beta_a"], prior["beta_b"] = beta_prior(prior["prior_prob"], prior["weight"], prior["n"])
+
+
+
+"""
+Part 4: Posteriors
+"""
+def beta_posterior(prior_a, prior_b, converted, n):
+    # Beta distribution because prior Beta distribution is conjugate
+    beta_posterior = stats.beta(prior_a + converted, prior_b + (n - converted))
+    samples = beta_posterior.rvs(size = n) 
+    return beta_posterior, samples
+
+posterior = dict()
+posterior["dist"], posterior["sample"] = beta_posterior(prior["beta_a"], prior["beta_b"], T["converted"], T["n"])
+
+
+
 
 
 
