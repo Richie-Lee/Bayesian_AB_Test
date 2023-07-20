@@ -1,3 +1,10 @@
+"""
+Notes:
+    -   For convenience, now T_ES and C_ES are set to T and C, 
+        s.t. the rest of the code runs. But this loses the fixed 
+        horizon comparisons.
+"""
+
 import numpy as np
 import pandas as pd
 
@@ -15,22 +22,22 @@ _start_time = datetime.now()
 """
 Part 0: Settings & Hyperparameters
 """
-random.seed(0)
+ random.seed(0)
 
 # H0: effect = 0, H1: effect = mde (note, not composite! though still practical for that purpose)
-hypotheses = {"null": 0.6, "alt": 0.7, "mde": 0.05}
+hypotheses = {"null": 0.6, "alt": 0.65, "mde": 0.05}
 _relative_loss_theshold = 0.05 # Used for loss -> e.g. 0.05 = 5% of prior effect deviation is accepted 
 
 # Define Control & Treatment DGP (Bernoulli distributed)
 C = {"n": 1000, "true_prob": 0.6} 
-T = {"n": 1000, "true_prob": 0.65}
+T = {"n": 1000, "true_prob": 0.6}
 
 # Define Prior (Beta distributed -> Conjugate)
-prior = {"n": 1000, "weight": 5, "prior_control": 0.6, "prior_treatment": 0.7}
+prior = {"n": 1000, "weight": 25, "prior_control": 0.6, "prior_treatment": 0.7}
 
 # Early Stopping parameters (criteria in % for intuitive use-cases)
 sequential_testing = True
-early_stopping = {"stopping_criteria_prob": 95, "interim_test_interval": 10}
+early_stopping = {"stopping_criteria_prob": 95, "interim_test_interval": 10, "warm-up": 100}
 
 """
 Part 1: Generate Data
@@ -81,9 +88,7 @@ T["bayes_factor"] = log_likelihood_ratio_test(T["sample"])
 
 
 
-
 """
-TO DO: warmup period + plot + cleanup code + sanity checks
 Part 2.5: Early Stopping
 """
 
@@ -94,7 +99,7 @@ def early_stopping_sampling(treatment):
     # Initialise
     bayes_factor, n_test = 0, 0
     early_stop = False
-    all_bayes_factors = []
+    interim_tests = []
     
     while early_stop == False:
         # sample        
@@ -110,10 +115,10 @@ def early_stopping_sampling(treatment):
         print(f"n: {n_observed}/{T['n']}, BF: {bayes_factor}")
         
         # Stopping criteria
-        if bayes_factor > k or bayes_factor < 1/k:
+        if (bayes_factor > k or bayes_factor < 1/k) and n_observed >= early_stopping["warmup"]:
             early_stop = True
         
-        all_bayes_factors.append((n_observed, bayes_factor))
+        interim_tests.append((n_observed, bayes_factor))
     
     # Format new collections of info on treatment/control (slice control based on sample size of early stopping)
     T_ES = {
@@ -121,7 +126,7 @@ def early_stopping_sampling(treatment):
         "converted": sum(data_observed),
         "sample_conversion_rate": round(sum(data_observed) / n_observed, 3),
         "bayes_factor": bayes_factor,
-        "interim_tests": all_bayes_factors,
+        "interim_tests": interim_tests,
         "early_stop": early_stop,
         "n": n_observed,
         "n_test": n_test,
@@ -239,17 +244,12 @@ plot_posteriors()
 
 def plot_bayes_factors(interim_tests):
     x, y = zip(*interim_tests)
-    plt.plot(x, y, marker = "o", linestyle = "-", label = "BF: H1|H0")
+    plt.plot(x, y, marker = ".", linestyle = "-", label = "BF: H1|H0")
     
     # plot stopping criteria
     plt.axhline(y = 1, color = "red", linestyle = "--", linewidth = "0.6")
     plt.axhline(y = early_stopping["k"], color = "black", linestyle = "--", linewidth = "0.6")
     plt.axhline(y = 1/early_stopping["k"], color = "black", linestyle = "--", linewidth = "0.6")
-    
-    # Set a symmetric range (around 1) for the y-axis 
-    y_max = 1 * max(1 / max(y), 1 / min(y))
-    y_min = 1 / max(1 / max(y), 1 / min(y))
-    plt.ylim(y_min, y_max)
         
     # Set the y-axis to log scale
     plt.yscale('log')
