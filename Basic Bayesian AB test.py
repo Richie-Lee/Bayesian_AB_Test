@@ -28,6 +28,9 @@ T = {"n": 1000, "true_prob": 0.65}
 # Define Prior (Beta distributed -> Conjugate)
 prior = {"n": 1000, "weight": 5, "prior_control": 0.6, "prior_treatment": 0.7}
 
+# Early Stopping parameters (criteria in % for intuitive use-cases)
+sequential_testing = True
+early_stopping = {"stopping_criteria_prob": 95, "interim_test_interval": 10}
 
 """
 Part 1: Generate Data
@@ -83,8 +86,6 @@ T["bayes_factor"] = log_likelihood_ratio_test(T["sample"])
 TO DO: warmup period + plot + cleanup code + sanity checks
 Part 2.5: Early Stopping
 """
-# Early Stopping criteria (give in %)
-early_stopping = {"stopping_criteria_prob": 95, "interim_test_interval": 10}
 
 def early_stopping_sampling(treatment):
     # Stopping criteria (symmetric) - computed using hyperparameter confidence %
@@ -114,12 +115,13 @@ def early_stopping_sampling(treatment):
         
         all_bayes_factors.append((n_observed, bayes_factor))
     
+    # Format new collections of info on treatment/control (slice control based on sample size of early stopping)
     T_ES = {
         "sample": data_observed,
         "converted": sum(data_observed),
         "sample_conversion_rate": round(sum(data_observed) / n_observed, 3),
         "bayes_factor": bayes_factor,
-        "bayes_factor_full": all_bayes_factors,
+        "interim_tests": all_bayes_factors,
         "early_stop": early_stop,
         "n": n_observed,
         "n_test": n_test,
@@ -134,12 +136,11 @@ def early_stopping_sampling(treatment):
         "true_prob": T["true_prob"]
         }
         
-        
-    return T_ES, C_ES
+    return T_ES, C_ES, k
 
-T_ES, C_ES = early_stopping_sampling(T["sample"])
-
-raise SystemExit(0)
+if sequential_testing == True:
+    T_ES, C_ES, early_stopping["k"] = early_stopping_sampling(T["sample"])
+    T, C = T_ES, C_ES
 
 """
 Part 3: Priors (Conjugate)
@@ -173,20 +174,25 @@ T["post_dist"], T["post_sample"] = beta_posterior(T["prior_beta_a"], T["prior_be
 
 
 """
-Part 5
+Part 5: Reporting (Metrics & Visualisations)
 """
 
 # Print hypotheses:
 print(f"\n===============================\nH0: y = {hypotheses['null']}, H1: y = {hypotheses['alt']}\nmde = {hypotheses['mde']} \n===============================")
 
-def metrics():
+def metrics():    
     prob_H1 = round(T["bayes_factor"] / (T["bayes_factor"] + 1), 3)
     print(f"\nInformal probabilities: \nP[H1|BF]: {prob_H1}")
     
     # Evaluate how often treatment outperformes control
     treatment_won = [t - c >= hypotheses['mde'] for c, t in zip(C["post_sample"], T["post_sample"])]
     chance_of_beating_control = np.mean(treatment_won)
-    print(f"P[T - C >= mde]: {round(chance_of_beating_control, 2)}")
+    print(f"posterior: P[T - C >= mde]: {round(chance_of_beating_control, 2)}")
+    treatment_won = [t >= c for c, t in zip(C["post_sample"], T["post_sample"])]
+    chance_of_beating_control = np.mean(treatment_won)
+    print(f"posterior: P[T >= C]: {round(chance_of_beating_control, 2)}")
+    
+    
     
     # Get treatment effect measurement
     treatment_effect = { 
@@ -207,7 +213,7 @@ def metrics():
     loss_treatment = [(1 - int(i))*j for i,j in zip(treatment_won, loss_treatment)]
     loss_treatment = round(np.mean(loss_treatment), 4)
     
-    print(f"\nLoss (acceptable = {round(treatment_effect['prior'] * _relative_loss_theshold, 4)}):\n- Treatment: {loss_treatment}\n- Control: {loss_control}")
+    # print(f"\nLoss (acceptable = {round(treatment_effect['prior'] * _relative_loss_theshold, 4)}):\n- Treatment: {loss_treatment}\n- Control: {loss_control}")
     
     return treatment_effect, loss_control, loss_treatment
 
@@ -218,7 +224,7 @@ treatment_effect, C["loss"], T["loss"] = metrics()
 sns.set_style('darkgrid')
 _colors = plt.rcParams['axes.prop_cycle'].by_key()['color'] 
 
-def plot():
+def plot_posteriors():
     # Plot the histogram + kernel (Posterior)
     plt.hist(C["post_sample"], bins = 30, alpha = 0.5, density=True, color = _colors[0])
     plt.hist(T["post_sample"], bins = 30, alpha = 0.5, density=True, color = _colors[1])
@@ -228,8 +234,34 @@ def plot():
     plt.legend()
     plt.title("Samples from posterior distributions")
     plt.show()
+
+plot_posteriors()
+
+def plot_bayes_factors(interim_tests):
+    x, y = zip(*interim_tests)
+    plt.plot(x, y, marker = "o", linestyle = "-", label = "BF: H1|H0")
     
-plot()
+    # plot stopping criteria
+    plt.axhline(y = 1, color = "red", linestyle = "--", linewidth = "0.6")
+    plt.axhline(y = early_stopping["k"], color = "black", linestyle = "--", linewidth = "0.6")
+    plt.axhline(y = 1/early_stopping["k"], color = "black", linestyle = "--", linewidth = "0.6")
+    
+    # Set a symmetric range (around 1) for the y-axis 
+    y_max = 1 * max(1 / max(y), 1 / min(y))
+    y_min = 1 / max(1 / max(y), 1 / min(y))
+    plt.ylim(y_min, y_max)
+        
+    # Set the y-axis to log scale
+    plt.yscale('log')
+    
+    plt.xlabel("Sample size")
+    plt.ylabel("Bayes_factor")
+    plt.legend()
+    plt.title("Bayes Factors during interim testing")
+    plt.plot()
+    
+if sequential_testing == True:
+    plot_bayes_factors(T["interim_tests"])
 
 # Print execution time
 print(f"\n===============================\nTotal runtime:  {datetime.now() - _start_time}")
