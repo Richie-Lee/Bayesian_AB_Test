@@ -11,8 +11,7 @@ from datetime import datetime
 
 # Track total runtime
 _start_time = datetime.now()
- 
-true_effect = 0.05
+
 
 # Define a function to run the code and store the results
 def run_code_with_seed(seed):
@@ -217,6 +216,7 @@ def run_code_with_seed(seed):
     return result, early_stopping, interim_tests
 
 # Define the number of runs and a list to store the results
+true_effect = 0.05
 num_runs = 50
 results = []
 results_interim_tests = []
@@ -228,7 +228,12 @@ for _i in range(num_runs):
     results.append(_result)
     results_interim_tests.append(interim_tests)
 
-def early_stopping_dist():
+
+"""
+Visualisations
+"""
+
+def plot_early_stopping_dist():
     # plot stopping criteria
     plt.axhline(y = 1, color = "black", linestyle = "--", linewidth = "0.6")
     plt.axhline(y = early_stopping["k"], color = "black", linestyle = "--", linewidth = "0.6")
@@ -251,9 +256,9 @@ def early_stopping_dist():
     plt.title(f"Distributions of early stopping (n = {num_runs})")
     plt.show()
 
-early_stopping_dist()
+plot_early_stopping_dist()
 
-
+# Don't change type earlier, because dictionary type is used in other plots
 results = pd.DataFrame(results)
 
 def plot_prob_distributions():    
@@ -270,16 +275,51 @@ plot_prob_distributions()
 
 
 def plot_treatment_effect():  
+    # Get distribution of all treatment effect estimation errors
     plt.hist(results["treatment_effect"], bins = 20, alpha = 0.5, density=True, color = "green")
     sns.kdeplot(results["treatment_effect"], label = "Estimated", fill = True, alpha = 0.3, color = "green")
     plt.axvline(x = true_effect, color = "black", label = "true TE")
     
     plt.legend()
-    plt.xlabel('Probability')
+    plt.xlabel('Treatment effect')
+    plt.title(f"Distributions of treatment effect estimation (n = {num_runs})")
+    plt.show()
+    
+    # Compare Fixed Horizon & Early stopping
+    n = results['sample_size'].max() # Assume at least one non-early stop for coding convenience
+    results_fh = results[results["sample_size"] == n]
+    results_es = results[results["sample_size"] != n]
+
+    sns.kdeplot(results_fh["treatment_effect"], label = f"Fixed Horizon (n = {len(results_fh.index)})", fill = True, alpha = 0.3)
+    sns.kdeplot(results_es["treatment_effect"], label = f"Early Stopping (n = {len(results_es.index)})", fill = True, alpha = 0.3)
+    plt.axvline(x = true_effect, color = "black", label = "true TE")
+    plt.legend()
+    plt.xlabel('Treatment effect')
+    plt.title(f"Distributions of treatment effect estimation (n = {num_runs})")
+    plt.show()
+    
+
+plot_treatment_effect()
+
+
+
+def plot_corr_bias_sample_size():  
+    
+    errors = [x - true_effect for x in results["treatment_effect"]]
+    plt.scatter(results["sample_size"], errors, alpha = 0.6, label = "bias TE estimation")
+    plt.axhline(y = 0, linewidth = 0.6, linestyle = "--", color = "black")
+    plt.legend()
+    plt.ylabel("Error")
+    plt.xlabel("Sample size")
+    
+    # symmetric range for better illustration correlation
+    largest_error = max(-min(errors), max(errors))
+    plt.ylim(-largest_error*1.2, largest_error*1.2)
+    
     plt.title(f"Distributions of treatment effect estimation (n = {num_runs})")
     plt.show()
 
-plot_treatment_effect()
+plot_corr_bias_sample_size()
 
 
 
