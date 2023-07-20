@@ -216,8 +216,10 @@ def run_code_with_seed(seed):
     return result, early_stopping, interim_tests
 
 # Define the number of runs and a list to store the results
-true_effect = 0.05
-num_runs = 50
+true_effect = 0.06
+num_runs = 500
+
+print("true treatment effect: ", true_effect)
 results = []
 results_interim_tests = []
 
@@ -255,11 +257,19 @@ def plot_early_stopping_dist():
     plt.ylabel("Bayes_factor")
     plt.title(f"Distributions of early stopping (n = {num_runs})")
     plt.show()
-
+    
 plot_early_stopping_dist()
 
 # Don't change type earlier, because dictionary type is used in other plots
 results = pd.DataFrame(results)
+
+def plot_convergence_distribution():
+    sns.kdeplot(results["sample_size"], label = "Experiment termination", fill = True, alpha = 0.5, clip = (0, results["sample_size"].max()), bw_adjust=0.25)
+    plt.xlabel('Sample size')
+    plt.title(f"Distributions of experiment termination sample size (n = {num_runs})")
+    plt.show()
+
+plot_convergence_distribution()
 
 def plot_prob_distributions():    
     sns.kdeplot(results["P[TE>mde]"], label = "post P[TE > mde]", fill = True, alpha = 0.5, clip=(0, 1))
@@ -290,8 +300,8 @@ def plot_treatment_effect():
     results_fh = results[results["sample_size"] == n]
     results_es = results[results["sample_size"] != n]
 
-    sns.kdeplot(results_fh["treatment_effect"], label = f"Fixed Horizon (n = {len(results_fh.index)})", fill = True, alpha = 0.3)
-    sns.kdeplot(results_es["treatment_effect"], label = f"Early Stopping (n = {len(results_es.index)})", fill = True, alpha = 0.3)
+    sns.kdeplot(results_fh["treatment_effect"], label = f"Fixed Horizon (n = {len(results_fh.index)})", fill = True, alpha = 0.3, bw_adjust=0.4)
+    sns.kdeplot(results_es["treatment_effect"], label = f"Early Stopping (n = {len(results_es.index)})", fill = True, alpha = 0.3, bw_adjust=0.4)
     plt.axvline(x = true_effect, color = "black", label = "true TE")
     plt.legend()
     plt.xlabel('Treatment effect')
