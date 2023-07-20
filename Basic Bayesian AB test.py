@@ -18,10 +18,10 @@ Part 0: Settings & Hyperparameters
 random.seed(0)
 
 # H0: effect = 0, H1: effect = mde (note, not composite! though still practical for that purpose)
-hypotheses = {"null": 0.5, "alt": 0.51}
-C = {"n": 10_000, "true_prob": 0.5} # control
-T = {"n": 10_000, "true_prob": 0.51} # treatment
-
+hypotheses = {"null": 0.6, "alt": 0.65}
+C = {"n": 1000, "true_prob": 0.6} # control
+T = {"n": 1000, "true_prob": 0.64} # treatment
+prior = {"n": 100, "weight": 25, "prior_prob": 0.6}
 
 
 
@@ -77,11 +77,22 @@ def log_likelihood_ratio_test(treatment):
 
     return bayes_factor, alt_log_likelihood, null_log_likelihood
 
-T["l_bayes_factor"], T["l_likelihood_H1"], T["l_likelihood_H0"] = log_likelihood_ratio_test(T["sample"]["converted"])
-log_Prob_H1 = round(T["l_bayes_factor"] / (T["l_bayes_factor"] + 1) * 100, 3)
+T["bayes_factor"], T["log_likelihood_H1"], T["log_likelihood_H0"] = log_likelihood_ratio_test(T["sample"]["converted"])
+log_Prob_H1 = round(T["bayes_factor"] / (T["bayes_factor"] + 1) * 100, 3)
 
 
+"""
+Part 3: Priors
+"""
 
+def beta_prior(prior_prob, weight, n):
+    # Sample from Beta distribution: B(weight(prior belief) + 1, weight(1 - prior belief) + 1)
+    a = round(prior_prob, 1) * weight + 1
+    b = (1 - round(prior_prob, 1)) * weight + 1
+    samples = stats.beta(a, b).rvs(size = n)    
+    return samples, a, b
+
+prior["sample"], prior["beta_a"], prior["beta_b"] = beta_prior(prior["prior_prob"], prior["weight"], prior["n"])
 
 
 
