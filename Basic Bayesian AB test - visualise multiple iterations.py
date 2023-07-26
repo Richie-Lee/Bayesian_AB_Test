@@ -13,6 +13,10 @@ from datetime import datetime
 _start_time = datetime.now()
 
 
+# Define the number of runs and a list to store the results
+true_effect = 0
+num_runs = 500
+
 # Define a function to run the code and store the results
 def run_code_with_seed(seed):
     # Set the seed for reproducibility
@@ -27,11 +31,11 @@ def run_code_with_seed(seed):
     _relative_loss_theshold = 0.05 # Used for loss -> e.g. 0.05 = 5% of prior effect deviation is accepted 
      
     # Define Control & Treatment DGP (Bernoulli distributed)
-    C = {"n": 1000, "true_prob": 0.6} 
-    T = {"n": 1000, "true_prob": C["true_prob"] + true_effect}
+    C = {"n": 100000, "true_prob": 0.6} 
+    T = {"n": 100000, "true_prob": C["true_prob"] + true_effect}
      
     # Define Prior (Beta distributed -> Conjugate)
-    prior = {"n": 1000, "weight": 25, "prior_control": 0.6, "prior_treatment": 0.7}
+    prior = {"n": 1000, "weight": 25, "prior_control": 0.6, "prior_treatment": 0.6}
      
     # Early Stopping parameters (criteria in % for intuitive use-cases)
     sequential_testing = True
@@ -199,6 +203,10 @@ def run_code_with_seed(seed):
  
     treatment_effect, C["loss"], T["loss"], treatment_effect["p[TE>mde]"], treatment_effect["p[T>C]"] = metrics()
     
+    # conclusion of significant difference samples using kolmogorov-smirnoff:
+    ks_statistic, p_value = stats.ks_2samp(T["post_sample"], C["post_sample"])
+    conclusion = True if p_value < 0.05 else False
+    
     # =================================================================
     # Store the results in a dictionary
     result = {
@@ -209,15 +217,12 @@ def run_code_with_seed(seed):
         "treatment_effect": treatment_effect["estimated"],
         "P[T>C]" : treatment_effect["p[T>C]"],
         "P[TE>mde]" : treatment_effect["p[TE>mde]"],
+        "conclusion": conclusion
     }
     
     interim_tests = T["interim_tests"]
     
     return result, early_stopping, interim_tests
-
-# Define the number of runs and a list to store the results
-true_effect = 0.06
-num_runs = 500
 
 print("true treatment effect: ", true_effect)
 results = []
@@ -311,8 +316,6 @@ def plot_treatment_effect():
 
 plot_treatment_effect()
 
-
-
 def plot_corr_bias_sample_size():  
     
     errors = [x - true_effect for x in results["treatment_effect"]]
@@ -331,7 +334,7 @@ def plot_corr_bias_sample_size():
 
 plot_corr_bias_sample_size()
 
-
+print(f"total true ({sum(results['conclusion'])}/{num_runs})")
 
 
 # Print execution time
