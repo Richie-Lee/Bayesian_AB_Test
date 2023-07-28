@@ -1,7 +1,7 @@
 import numpy as np
     
 """
-Part 2: Log Likelihoods 
+Log-Likelihoods 
 """
 # Log is important, to prevent "float division by zero" as data dimensions increase and likelihoods converge to 0
 
@@ -32,9 +32,8 @@ def log_likelihood_ratio_test(treatment_sample, hypotheses):
 
 
 """
-Part 2.5: Early Stopping
+Early Stopping
 """
-
 def early_stopping_sampling(T, C, early_stopping, hypotheses):
     # Skip interim testing if desired
     if early_stopping["enabled"] == False:
