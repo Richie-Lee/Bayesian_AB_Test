@@ -5,6 +5,6 @@
 
 In general, the architecture looks as follows:
 
-[image]()
+[High level overview modules](https://github.com/Richie-Lee/Msc_Thesis/blob/main/img/Architecture%20code.png)
 
 
