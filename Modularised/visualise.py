@@ -6,15 +6,31 @@ sns.set_style('darkgrid')
 _colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 class visualisation:
-    def __init__(self, C, T, early_stopping, results, results_interim_tests):
+    def __init__(self, C, T, prior, early_stopping, results, results_interim_tests):
         self.C = C
         self.T = T
+        self.prior = prior
         self.ES = early_stopping
         self.results = results
         self.IT = results_interim_tests
         
+        # Get true effect from simulated DGP (label)
+        self.true_effect = T["true_prob"] - C["true_prob"]
+        
         # Always execute main class
         self.get_results() 
+        
+    def plot_prior(self, T, C, prior):
+        # Plot the histogram + kernel (Posterior)
+        plt.hist(C["prior_sample"], bins = 30, alpha = 0.5, density=True, color = _colors[0])
+        plt.hist(T["prior_sample"], bins = 30, alpha = 0.5, density=True, color = _colors[1])
+        sns.kdeplot(C["prior_sample"], label='Control', fill = False, color = _colors[0])
+        sns.kdeplot(T["prior_sample"], label='Treatment', fill = False, color = _colors[1])
+        plt.axvline(x = T["true_prob"], color = "black", label = "True post-treatment")
+        plt.xlabel('Probability')
+        plt.legend()
+        plt.title(f"Samples from prior distributions ({prior['distribution']})")
+        plt.show()
         
     def plot_early_stopping_dist(self, results, ES, IT):
         # plot stopping criteria
@@ -64,13 +80,10 @@ class visualisation:
         plt.title(f"Distributions of predicted probabilities (n = {len(results)})")
         plt.show()
         
-    def plot_treatment_effect(self, results, T, C):  
-        # Get true effect from simulated DGP (label)
-        true_effect = T["true_prob"] - C["true_prob"]
-        
+    def plot_treatment_effect(self, results, true_effect):  
         # Get distribution of all treatment effect estimation errors
-        plt.hist(results["treatment_effect"], bins = 20, alpha = 0.5, density=True, color = "green")
-        sns.kdeplot(results["treatment_effect"], label = "Estimated", fill = True, alpha = 0.3, color = "green")
+        plt.hist(results["treatment_effect"], bins = 20, alpha = 0.5, density=True, color = _colors[0])
+        sns.kdeplot(results["treatment_effect"], label = "Estimated", fill = True, alpha = 0.3, color = _colors[0])
         plt.axvline(x = true_effect, color = "black", label = "true TE")
         
         plt.legend()
@@ -90,11 +103,27 @@ class visualisation:
         plt.xlabel('Treatment effect')
         plt.title(f"Distributions of treatment effect estimation (n = {len(results)})")
         plt.show()
-                
+    
+    def plot_corr_bias_sample_size(self, results, true_effect):
+        # Plot scatter: x = sample size, y = TE estimation bias
+        errors = [x - true_effect for x in results["treatment_effect"]]
+        plt.scatter(results["sample_size"], errors, alpha = 0.6, label = "bias TE estimation")
+        plt.axhline(y = 0, linewidth = 0.6, linestyle = "--", color = "black")
+        plt.legend()
+        plt.ylabel("Error")
+        plt.xlabel("Sample size")
+        
+        # symmetric range for better illustration correlation
+        largest_error = max(-min(errors), max(errors))
+        plt.ylim(-largest_error*1.2, largest_error*1.2)
+        plt.title(f"Distributions of treatment effect estimation (n = {len(results)})")
+        plt.show()
             
     def get_results(self):
+        self.plot_prior(self.T, self.C, self.prior)
         self.plot_early_stopping_dist(self.results, self.ES, self.IT)
         self.plot_convergence_distribution(self.results)
         self.plot_prob_distributions(self.results)
-        self.plot_treatment_effect(self.results, self.T, self.C)
+        self.plot_treatment_effect(self.results, self.true_effect)
+        self.plot_corr_bias_sample_size(self.results, self.true_effect)
         
