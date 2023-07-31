@@ -39,15 +39,23 @@ class visualisation_bayes:
         plt.axhline(y = 1/ES["k"], color = "black", linestyle = "--", linewidth = "0.6")
             
         # Plot interim testing Bayes-Factor development
+        h1_count, h0_count = 0, 0
         for i in range(len(IT)):
             x, y = zip(*IT[i])
             if results["bayes_factor"][i] > 1: # Reject H0 (Effect discovery)
                 color_i = "green"
+                h1_count += 1
             else: # Accept H0 (No effect)
                 color_i = "red"
+                h0_count += 1
             plt.plot(x, y, linestyle = "-", alpha = 0.5, linewidth = 0.7, color = color_i)
         
+        plt.scatter(0, 0, marker = ".", color = "green", label = f"H1: {h1_count}/{len(results)}")
+        plt.scatter(0, 0, marker = ".", color = "red", label = f"H0: {h0_count}/{len(results)}")
+
+        
         # Set the y-axis to log scale
+        plt.legend()
         plt.yscale('log')
         plt.xlabel("Sample size")
         plt.ylabel("Bayes_factor")
