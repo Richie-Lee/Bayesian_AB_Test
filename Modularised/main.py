@@ -6,7 +6,8 @@ import data_generation as dgp
 import likelihood_and_early_stopping as likelihood
 import prior_posterior_calculation as pp
 import reporting as rpt
-# import visualization as viz
+import visualise as viz
+
 
 # Track total runtime
 _start_time = datetime.now()
@@ -16,7 +17,7 @@ _start_time = datetime.now()
 """
 Specify Settings & Hyperparameters
 """
-random.seed(2)
+random.seed(0)
 
 # H0: effect = 0, H1: effect = mde (note, not composite! though still practical for that purpose)
 hypotheses = {"null": 0.6, "alt": 0.65, "mde": 0.05}
@@ -24,13 +25,13 @@ _relative_loss_theshold = 0.05 # Used for loss -> e.g. 0.05 = 5% of prior effect
 
 # Define Control & Treatment DGP (Bernoulli distributed)
 C = {"n": 1_000, "true_prob": 0.6} 
-T = {"n": 1_000, "true_prob": 0.55}
+T = {"n": 1_000, "true_prob": 0.65}
 
 # Define Prior (Beta distributed -> Conjugate)
 prior = {"distribution": "beta", "prior_control": 0.6, "prior_treatment": 0.7, "n": 1000, "weight": 25}
 
 # Early Stopping parameters (criteria in % for intuitive use-cases)
-early_stopping = {"enabled": False, "stopping_criteria_prob": 95, "interim_test_interval": 10}
+early_stopping = {"enabled": True, "stopping_criteria_prob": 95, "interim_test_interval": 10}
 
 # For multiple run analyses (set to "False" to skip)
 n_runs = 100
@@ -47,7 +48,8 @@ T["sample"], T["converted"], T["sample_conversion_rate"] = dgp.get_bernoulli_sam
 Module 2: Log Likelihoods & Early stopping (if enabled)
 """
 T["bayes_factor"] = likelihood.log_likelihood_ratio_test(T["sample"], hypotheses)
-T, C, early_stopping["k"] = likelihood.early_stopping_sampling(T, C, early_stopping, hypotheses)
+if n_runs == False: # Skip this early stopping for multiple runs, as it affects T["n"] globally causes problems later - TO DO: fix in cleaner way
+    T, C, early_stopping["k"] = likelihood.early_stopping_sampling(T, C, early_stopping, hypotheses, n_runs)
 
 
 
@@ -69,14 +71,11 @@ T["prior_dist"], T["prior_sample"], T["post_dist"], T["post_sample"] = _T_prior,
 """
 Module 4: Reporting 
 """
-treatment_effect = rpt.metrics(T, C, prior, hypotheses)
-
-
+treatment_effect = rpt.metrics(T, C, prior, hypotheses, n_runs)
 
 """
 Module 5: Repeated testing
 """
-
 def full_test(seed, T, C):
     # Set seed
     random.seed(seed)
@@ -87,7 +86,7 @@ def full_test(seed, T, C):
     
     # Module 2: Likelihood
     T["bayes_factor"] = likelihood.log_likelihood_ratio_test(T["sample"], hypotheses)
-    T, C, early_stopping["k"] = likelihood.early_stopping_sampling(T, C, early_stopping, hypotheses)
+    T, C, early_stopping["k"] = likelihood.early_stopping_sampling(T, C, early_stopping, hypotheses, n_runs)
 
     # Module 3: Prior & Posterior
     _prior_posterior_instance = pp.prior_posterior(prior, C, T)
@@ -96,7 +95,7 @@ def full_test(seed, T, C):
     T["prior_dist"], T["prior_sample"], T["post_dist"], T["post_sample"] = _T_prior, _T_prior_sample, _T_post, _T_post_sample
 
     # Module 4: Performance measurement
-    treatment_effect = rpt.metrics(T, C, prior, hypotheses)
+    treatment_effect = rpt.metrics(T, C, prior, hypotheses, n_runs)
     
     # Store the results in a dictionary
     result = {
@@ -120,8 +119,14 @@ if n_runs != False:
         full_test(_seed, T, C)
         
     results = pd.DataFrame(results)
-    
-    
+
+"""
+Module 6: Visualise
+"""
+
+# Create an instance of the class
+visualisation_instance = viz.visualisation(C, T, early_stopping, results, results_interim_tests)
+
 
 # Print execution time
 print(f"\n===============================\nTotal runtime:  {datetime.now() - _start_time}")
