@@ -34,7 +34,7 @@ def log_likelihood_ratio_test(treatment_sample, hypotheses):
 """
 Early Stopping
 """
-def early_stopping_sampling(T, C, early_stopping, hypotheses):
+def early_stopping_sampling(T, C, early_stopping, hypotheses, n_runs):
     # Skip interim testing if desired
     if early_stopping["enabled"] == False:
         return T, C, None # Bayes Factor parameter k is undefined
@@ -53,12 +53,15 @@ def early_stopping_sampling(T, C, early_stopping, hypotheses):
         n_observed = n_test * early_stopping["interim_test_interval"]
         
         # Full data set utilised
-        if n_observed > T["n"]:
+        if n_observed >= T["n"]:
             break
         
         data_observed = T["sample"][:n_observed]
         bayes_factor = log_likelihood_ratio_test(data_observed, hypotheses)
-        print(f"n: {n_observed}/{T['n']}, BF: {bayes_factor}")
+        
+        # Prevent excessive printing when running multiple times (only print single iterations)
+        if n_runs == False:
+            print(f"n: {n_observed}/{T['n']}, BF: {bayes_factor}")
         
         # Stopping criteria
         if (bayes_factor > k or bayes_factor < 1/k):
