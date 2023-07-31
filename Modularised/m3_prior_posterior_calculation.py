@@ -1,11 +1,11 @@
 import scipy.stats as stats
 
 class prior_posterior:
-    def __init__(self, prior, C, T, model_selection):
+    def __init__(self, prior, C, T):
         self.prior = prior
         self.C = C
         self.T = T
-        self.model_selection = model_selection
+        self.model_selection = prior["distribution"]
         
         # Always execute main class
         self.get_results() 

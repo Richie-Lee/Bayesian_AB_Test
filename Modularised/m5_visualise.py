@@ -5,7 +5,7 @@ import seaborn as sns
 sns.set_style('darkgrid')
 _colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-class visualisation:
+class visualisation_bayes:
     def __init__(self, C, T, prior, early_stopping, results, results_interim_tests):
         self.C = C
         self.T = T

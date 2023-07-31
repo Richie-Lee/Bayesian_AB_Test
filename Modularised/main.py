@@ -2,11 +2,11 @@ import pandas as pd
 import random
 from datetime import datetime
 
-import data_generation as dgp
-import likelihood_and_early_stopping as likelihood
-import prior_posterior_calculation as pp
-import reporting as rpt
-import visualise as viz
+import m1_data_generation as dgp
+import m2_likelihood_and_early_stopping as likelihood
+import m3_prior_posterior_calculation as pp
+import m4_reporting as rpt
+import m5_visualise as viz
 
 
 # Track total runtime
@@ -20,21 +20,22 @@ Specify Settings & Hyperparameters
 random.seed(0)
 
 # H0: effect = 0, H1: effect = mde (note, not composite! though still practical for that purpose)
-hypotheses = {"null": 0.6, "alt": 0.65, "mde": 0.05}
+hypotheses = {"null": 0.6, "alt": 0.62, "mde": 0.05}
 _relative_loss_theshold = 0.05 # Used for loss -> e.g. 0.05 = 5% of prior effect deviation is accepted 
 
 # Define Control & Treatment DGP (Bernoulli distributed)
-C = {"n": 1_000, "true_prob": 0.6} 
-T = {"n": 1_000, "true_prob": 0.65}
+C = {"n": 10_000, "true_prob": 0.6} 
+T = {"n": 10_000, "true_prob": 0.605}
 
 # Define Prior (Beta distributed -> Conjugate)
-prior = {"distribution": "beta", "prior_control": 0.6, "prior_treatment": 0.7, "n": 1000, "weight": 25}
+prior = {"distribution": "beta", "prior_control": 0.6, "prior_treatment": 0.62, "n": 10000, "weight": 25}
 
 # Early Stopping parameters (criteria in % for intuitive use-cases)
 early_stopping = {"enabled": True, "stopping_criteria_prob": 95, "interim_test_interval": 10}
 
 # For multiple run analyses (set to "False" to skip)
 n_runs = 100
+_print_progress, _obs_interval = True, 10
 
 """
 Module 1: Generate Data
@@ -73,12 +74,17 @@ Module 4: Reporting
 """
 treatment_effect = rpt.metrics(T, C, prior, hypotheses, n_runs)
 
+
+
 """
 Module 5: Repeated testing
 """
 def full_test(seed, T, C):
     # Set seed
     random.seed(seed)
+    
+    if seed % _obs_interval == 0 and _print_progress == True:
+        print(f"completed iterations: {seed}/{n_runs}")
 
     # Module 1: Data generation
     C["sample"], C["converted"], C["sample_conversion_rate"] = dgp.get_bernoulli_sample(mean = C["true_prob"], n = C["n"])
@@ -123,9 +129,8 @@ if n_runs != False:
 """
 Module 6: Visualise
 """
-
 # Create an instance of the class
-visualisation_instance = viz.visualisation(C, T, early_stopping, results, results_interim_tests)
+_visualisation_instance = viz.visualisation_bayes(C, T, prior, early_stopping, results, results_interim_tests)
 
 
 # Print execution time
