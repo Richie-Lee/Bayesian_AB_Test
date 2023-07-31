@@ -37,10 +37,21 @@ class visualisation:
         plt.show()
         
     def plot_convergence_distribution(self, results):
-        sns.kdeplot(results["sample_size"], label = "Experiment termination", fill = True, alpha = 0.5, clip = (0, results["sample_size"].max()), bw_adjust=0.25)
+        # All observations
+        sns.kdeplot(results["sample_size"], label = "All experiments", fill = True, alpha = 0.5, clip = (0, results["sample_size"].max()), bw_adjust=0.25)
         plt.xlabel('Sample size')
         plt.title(f"Distributions of experiment termination sample size (n = {len(results)})")
+        plt.legend()
         plt.show()
+        
+        # Separate distributions for Bayes Factor stopping for H1/H0 respectively
+        sns.kdeplot(results[results["bayes_factor"] >= 1]["sample_size"], label = f"H1 ({len(results[results['bayes_factor'] >= 1])})", fill = True, alpha = 0.5, clip = (0, results["sample_size"].max()), bw_adjust=0.25)
+        sns.kdeplot(results[results["bayes_factor"] < 1]["sample_size"], label = f"H0 ({len(results[results['bayes_factor'] < 1])})", fill = True, alpha = 0.5, clip = (0, results["sample_size"].max()), bw_adjust=0.25)
+        plt.xlabel('Sample size')
+        plt.legend()
+        plt.title(f"Distributions of experiment termination sample size (n = {len(results)})")
+        plt.show()
+        
             
     def get_results(self):
         self.plot_early_stopping_dist(self.results, self.ES, self.IT)
