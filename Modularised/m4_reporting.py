@@ -8,7 +8,7 @@ def metrics(T, C, prior, hypotheses, n_runs):
     treatment_better_mde = [t - c >= hypotheses['mde'] for c, t in zip(C["post_sample"], T["post_sample"])]
     prob_TE_better_mde = round(np.mean(treatment_better_mde), 2)
     
-    # Evaluate how often treatment outperformes control
+    # Evaluate how often treatment outperformes control (follows: https://towardsdatascience.com/bayesian-experimentation-metrics-explained-bd2faebd937e)
     treatment_won = [t >= c for c, t in zip(C["post_sample"], T["post_sample"])]
     prob_TE_positive = round(np.mean(treatment_won), 2)
 
