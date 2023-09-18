@@ -1,11 +1,11 @@
 import pandas as pd
 import random
-from datetime import datetime
 
 import part_1_dgp as p1_dgp
 import part_2_prior as p2_prior
 import part_3_bayes_factors as p3_bf
 import part_4_inference as p4_metrics
+import part_5_repeat as p5_repeat
 
 # Control randomness for reproducibility
 random.seed(1)
@@ -43,8 +43,13 @@ C_prior, T_prior = prior_calculator.get_values()
 """ 
 Part 3: Bayes Factor
 """
-bf_calculator = p3_bf.get_bayes_factor(T, T_prior, C, C_prior, prior_type)
-bf = bf_calculator.get_values()
+early_stopping_settings = {
+    "prob_early_stopping" : 0.95,
+    "interim_test_interval" : 100,
+    }
+
+bf_calculator = p3_bf.get_bayes_factor(T, T_prior, C, C_prior, prior_type, early_stopping_settings)
+bf, interim_tests, k, sample_size = bf_calculator.get_values()
 
 
 
@@ -52,4 +57,28 @@ bf = bf_calculator.get_values()
 Part 4: Posterior & Inference
 """
 metrics_calculator = p4_metrics.get_metrics(T, T_prior, C, C_prior, prior_type, bf, prior_odds)
-results = metrics_calculator.get_values()
+metrics = metrics_calculator.get_values()
+
+
+
+"""
+Part 5: Repeat
+"""
+n_test = 100 # number of iterations
+print_progress = False 
+results, results_interim_tests = p5_repeat.multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_stopping_settings, n_test, print_progress)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
