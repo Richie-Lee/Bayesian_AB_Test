@@ -1,12 +1,10 @@
 import numpy as np
 from scipy.special import betaln
 
-
 class get_bayes_factor():
-    
     def __init__(self, T, T_prior, C, C_prior, prior_type):
-        self.prior_type = prior_type
         self.T, self.C = T, C
+        self.prior_type = prior_type
         self.T_prior, self.C_prior = T_prior, C_prior
         
         # Execute main method
@@ -32,13 +30,15 @@ class get_bayes_factor():
         log_prob_data_H1 = log_prob_data_H1_treatment + log_prob_data_H1_control
     
         # Compute Log Bayes Factor and convert to regular Bayes Factor
-        log_bf_10 = log_prob_data_H1 - log_prob_data_H0
-        bf_10 = np.exp(log_bf_10)
+        log_bf = log_prob_data_H1 - log_prob_data_H0
+        bf = np.exp(log_bf)
     
-        return bf_10
+        return bf
     
     def get_values(self):
         if self.prior_type == "beta":
             bf = self.beta_bf(self.T, self.C, self.T_prior, self.C_prior)
             
         return bf
+        
+        
