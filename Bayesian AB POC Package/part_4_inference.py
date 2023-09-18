@@ -68,11 +68,11 @@ class get_metrics():
       
         
     def get_values(self):
-        results = {
+        metrics = {
         "P[H1|data]" : self.posterior_odds(self.prior_odds, self.bf),
         "uplift" : self.uplift(self.T, self.C),
         "P[T>C]" : self.prob_treatment_beats_control(),
         "loss" : self.loss()
             }
         
-        return results
+        return metrics

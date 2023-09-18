@@ -34,6 +34,8 @@ class get_bayes_factor():
     
         return bf
     
+    
+    
     def get_values(self):
         """
         Fixed Horizon
@@ -63,18 +65,14 @@ class get_bayes_factor():
             
             # Store results
             interim_tests.append((n_observed, bf))
-            
-            # option to print progress if desired
-            if self.es_settings["print_progress"] == True:
-                print(f"n: {n_observed}/{self.T['n']}, BF: {bf}")
           
             # Stopping criteria
-            if (bf > k or bf < 1/k):
+            if (bf > k or bf < 1/k) or n_observed == self.T["n"]:
                 break
 
             # Extend sample & get conversions
             n_observed += self.es_settings["interim_test_interval"]
         
-        return bf_fixed_horizon, interim_tests, k
+        return bf_fixed_horizon, interim_tests, k, n_observed
         
         
