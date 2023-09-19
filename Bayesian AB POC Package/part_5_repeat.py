@@ -9,12 +9,11 @@ import part_4_inference as p4_metrics
 from datetime import datetime
 
 def multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_stopping_settings, n_test, print_progress):    
-    
     # Track runtime
     startTime = datetime.now()
     
     results = []
-    results_columns = ["seed", "n", "P[H1|data]", "uplift", "P[T>C]", "loss"]
+    results_columns = ["seed", "sample_size", "P[H1|data]", "uplift", "P[T>C]", "loss", "bayes_factor", "bayes_factor_fh"]
     all_interim_tests = []
     
     for i in range(n_test):
@@ -34,14 +33,18 @@ def multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_st
         
         # Part 3: bayes factor
         bf_calculator = p3_bf.get_bayes_factor(T, T_prior, C, C_prior, prior_type, early_stopping_settings)
-        bf, interim_tests, k, sample_size = bf_calculator.get_values()
+        bf_fh, bf, interim_tests, k, sample_size = bf_calculator.get_values()
+        
+        # update observed data - based on early stopping
+        T["converted"], T["sample"] = sum(T["sample"][:sample_size]), T["sample"][:sample_size]
+        C["converted"], C["sample"] = sum(C["sample"][:sample_size]), C["sample"][:sample_size]
         
         # Part 4: inference
         metrics_calculator = p4_metrics.get_metrics(T, T_prior, C, C_prior, prior_type, bf, prior_odds)
         metrics = metrics_calculator.get_values()
         
         # Store results
-        results.append([i, sample_size, metrics["P[H1|data]"], metrics["uplift"], metrics["P[T>C]"], metrics["loss"]])
+        results.append([i, sample_size, metrics["P[H1|data]"], metrics["uplift"], metrics["P[T>C]"], metrics["loss"], bf, bf_fh])
         all_interim_tests.append(interim_tests)
         
     results = pd.DataFrame(results, columns = results_columns)

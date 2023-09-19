@@ -1,4 +1,3 @@
-import pandas as pd
 import random
 
 import part_1_dgp as p1_dgp
@@ -6,13 +5,14 @@ import part_2_prior as p2_prior
 import part_3_bayes_factors as p3_bf
 import part_4_inference as p4_metrics
 import part_5_repeat as p5_repeat
+import part_6_visualisation as p6_plot
 
 # Control randomness for reproducibility
 random.seed(1)
 
 # Define Control & Treatment DGP (Bernoulli distributed)
 C = {"n": 10_000, "true_prob": 0.5}
-T = {"n": 10_000, "true_prob": 0.53}
+T = {"n": 10_000, "true_prob": 0.51}
 
 """ 
 Part 1: Generate data
@@ -31,7 +31,7 @@ prior_odds = 1
 # Marginal likelihood prior (parameter prior)
 prior_type = "beta"
 prior_parameters = {
-    "beta" : {"T_prior_prob" : 0.52, "T_weight" : 1000, "C_prior_prob" : 0.5,"C_weight" : 1000},
+    "beta" : {"T_prior_prob" : 0.51, "T_weight" : 10000, "C_prior_prob" : 0.5,"C_weight" : 10000},
     "right haar" : {"param" : None}
     }
 
@@ -49,7 +49,7 @@ early_stopping_settings = {
     }
 
 bf_calculator = p3_bf.get_bayes_factor(T, T_prior, C, C_prior, prior_type, early_stopping_settings)
-bf, interim_tests, k, sample_size = bf_calculator.get_values()
+bf_fh, bf, interim_tests, early_stopping_settings["k"], sample_size = bf_calculator.get_values()
 
 
 
@@ -64,13 +64,16 @@ metrics = metrics_calculator.get_values()
 """
 Part 5: Repeat
 """
-n_test = 100 # number of iterations
-print_progress = False 
+n_test = 500 # number of iterations
+print_progress = True 
 results, results_interim_tests = p5_repeat.multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_stopping_settings, n_test, print_progress)
 
 
 
-
+"""
+Part 6: Visualisation
+"""
+_visualisation = p6_plot.visualisation_bayes(T, C, early_stopping_settings, results, results_interim_tests)
 
 
 
