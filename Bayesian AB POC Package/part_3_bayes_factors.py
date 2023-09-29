@@ -52,14 +52,14 @@ class get_bayes_factor():
         """
         n_observed, interim_tests = 0, []
         
-        # Convert probability to odds (Bayes factors stopping rule)
+        # Convert input probability to odds parameter k (Bayes factors stopping rule)
         k = (self.es_settings["prob_early_stopping"] * 100) / (100 - (self.es_settings["prob_early_stopping"] * 100))
         
         while n_observed <= self.T["n"]:
             # Mask observations to resemble partial sampling
             c_t, n_t = sum(self.T["sample"][:n_observed]), n_observed
             c_c, n_c = sum(self.C["sample"][:n_observed]), n_observed
-            
+
             if self.prior_type == "beta":
                 bf = self.beta_bf(c_t, n_t, c_c, n_c, self.T_prior, self.C_prior)
             
@@ -73,6 +73,6 @@ class get_bayes_factor():
             # Extend sample & get conversions
             n_observed += self.es_settings["interim_test_interval"]
         
-        return bf_fixed_horizon, interim_tests, k, n_observed
+        return bf_fixed_horizon, bf, interim_tests, k, n_observed
         
         

@@ -11,8 +11,8 @@ import part_6_visualisation as p6_plot
 random.seed(1)
 
 # Define Control & Treatment DGP (Bernoulli distributed)
-C = {"n": 10_000, "true_prob": 0.5}
-T = {"n": 10_000, "true_prob": 0.51}
+C = {"n": 100_000, "true_prob": 0.5}
+T = {"n": 100_000, "true_prob": 0.52}
 
 """ 
 Part 1: Generate data
@@ -31,7 +31,7 @@ prior_odds = 1
 # Marginal likelihood prior (parameter prior)
 prior_type = "beta"
 prior_parameters = {
-    "beta" : {"T_prior_prob" : 0.51, "T_weight" : 10000, "C_prior_prob" : 0.5,"C_weight" : 10000},
+    "beta" : {"T_prior_prob" : 0.52, "T_weight" : 1000, "C_prior_prob" : 0.5,"C_weight" : 1000},
     "right haar" : {"param" : None}
     }
 
@@ -45,7 +45,7 @@ Part 3: Bayes Factor
 """
 early_stopping_settings = {
     "prob_early_stopping" : 0.95,
-    "interim_test_interval" : 100,
+    "interim_test_interval" : 1000
     }
 
 bf_calculator = p3_bf.get_bayes_factor(T, T_prior, C, C_prior, prior_type, early_stopping_settings)
@@ -64,7 +64,7 @@ metrics = metrics_calculator.get_values()
 """
 Part 5: Repeat
 """
-n_test = 500 # number of iterations
+n_test = 20 # number of iterations
 print_progress = True 
 results, results_interim_tests = p5_repeat.multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_stopping_settings, n_test, print_progress)
 
@@ -73,7 +73,7 @@ results, results_interim_tests = p5_repeat.multiple_iterations(T, C, prior_odds,
 """
 Part 6: Visualisation
 """
-_visualisation = p6_plot.visualisation_bayes(T, C, early_stopping_settings, results, results_interim_tests)
+_visualisation = p6_plot.visualisation_bayes(T, C, early_stopping_settings, results, results_interim_tests, prior_odds)
 
 
 

@@ -40,7 +40,7 @@ class get_metrics():
     
     def uplift(self, T, C):
         # Uplift is observed difference in conversion rates
-        return round(T["sample_conversion_rate"] - C["sample_conversion_rate"], 4)
+        return round(T["converted"]/T["n"] - C["converted"]/C["n"], 4)
     
     
     
@@ -64,8 +64,6 @@ class get_metrics():
         # If no samples where treatment < control, return 0 loss (note that this is rounded, as it should always be non-zero following stats concepts)
         else:
           return 0
-            
-      
         
     def get_values(self):
         metrics = {

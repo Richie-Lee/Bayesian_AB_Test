@@ -21,7 +21,7 @@ def multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_st
         random.seed(i)
         
         if print_progress == True:
-            print(f"{i}/{n_test}")
+            print(f"{i + 1}/{n_test}")
     
         # Part 1: Generate data
         C["sample"], C["converted"], C["sample_conversion_rate"] = p1_dgp.get_bernoulli_sample(mean = C["true_prob"], n = C["n"])
