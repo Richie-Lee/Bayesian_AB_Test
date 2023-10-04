@@ -14,8 +14,8 @@ class get_prior():
         C_beta = (1 - round(parameters["C_prior_prob"], 2)) * parameters["C_weight"] + 1
         
         # Collect and store parameters
-        T_prior = {"alpha": T_alpha, "beta": T_beta}
-        C_prior = {"alpha": C_alpha, "beta": C_beta}
+        T_prior = {"alpha": T_alpha, "beta": T_beta, "prior_prob": parameters["T_prior_prob"]}
+        C_prior = {"alpha": C_alpha, "beta": C_beta, "prior_prob": parameters["C_prior_prob"]}
         return C_prior, T_prior
     
     def get_values(self):
