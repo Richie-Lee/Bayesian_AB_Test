@@ -81,7 +81,8 @@ class visualisation_bayes:
         plt.yscale('log')
         plt.xlabel("Sample size")
         plt.ylabel("Bayes_factor")
-        plt.title(f"Distributions of early stopping (n = {len(results)})")
+        plt.ylim(1/(1.2*k), k*1.2) # symmetrical vertical range displayed
+        plt.title(f"Distributions of early stopping (n = {len(results)}, k = {k})")
         plt.show()
         
     def plot_convergence_distribution(self, results):
