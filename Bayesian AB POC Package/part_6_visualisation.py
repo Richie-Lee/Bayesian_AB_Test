@@ -1,61 +1,57 @@
 import matplotlib.pyplot as plt
-import seaborn as sns
+# import seaborn as sns
 import numpy as np
 import scipy.stats as stats
-from tabulate import tabulate # pip install tabulate
+# from tabulate import tabulate # pip install tabulate
 
 import warnings
 warnings.filterwarnings("ignore")
 
 # Set the style & colors for the plots
-sns.set_style('darkgrid')
+# sns.set_style('darkgrid')
 _colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 class visualisation_bayes:
-    def __init__(self, T, C, early_stopping_settings, results, results_interim_tests, prior_odds, T_prior, C_prior, prior_type):
+    def __init__(self, T, C, early_stopping_settings, results, results_interim_tests, prior_odds, T_prior, C_prior, prior_type, H0_prior=None, H1_prior=None):
         self.C = C
         self.T = T
         self.k = early_stopping_settings["k"]
+        self.min_sample = early_stopping_settings["minimum_sample"]
         self.results = results
         self.interim_tests = results_interim_tests
         self.prior_odds = prior_odds
         self.C_prior = C_prior
         self.T_prior = T_prior
+        self.H0_prior = H0_prior
+        self.H1_prior = H1_prior
         self.prior_type = prior_type
-        
         # Get true effect from simulated DGP (label)
-        self.true_effect = T["true_prob"] - C["true_prob"]
-        
-        # Always execute main class
-        self.get_results() 
+        self.true_effect = T["true_prob"] - C["true_prob"] if self.prior_type == "beta" else None
+        self.get_results()
     
-    def plot_prior(self, T_prior, C_prior, prior_type):
+    def plot_prior(self):
         x = np.linspace(0, 1, 1000)
-        
-        # Generate pdfs (based on distribution type & parameters)
-        if prior_type == "beta":
-            C_dist = stats.beta.pdf(x, C_prior["alpha"], C_prior["beta"])
-            T_dist = stats.beta.pdf(x, T_prior["alpha"], T_prior["beta"])
-            C_label = f"Control: α = {C_prior['alpha']}, β = {C_prior['beta']}, (λ = {C_prior['prior_prob']})"
-            T_label = f"Treatment: α = {T_prior['alpha']}, β = {T_prior['beta']}, (λ = {T_prior['prior_prob']})"
+        if self.prior_type == "beta":
+            C_dist = stats.beta.pdf(x, self.C_prior["alpha"], self.C_prior["beta"])
+            T_dist = stats.beta.pdf(x, self.T_prior["alpha"], self.T_prior["beta"])
+            C_label = f"Control: α = {self.C_prior['alpha']}, β = {self.C_prior['beta']}"
+            T_label = f"Treatment: α = {self.T_prior['alpha']}, β = {self.T_prior['beta']}"
+            # Plot distributions & means
+            plt.plot(x, C_dist, label=C_label, color=_colors[0])
+            plt.fill_between(x, C_dist, color=_colors[0], alpha=0.2)
+            plt.plot(x, T_dist, label=T_label, color=_colors[1])
+            plt.fill_between(x, T_dist, color=_colors[1], alpha=0.2)
+        elif self.prior_type == "normal":
+            # Here you can implement visualization for normal priors if needed
+            pass
 
-        # Plot distributions & means
-        plt.plot(x, C_dist, label = C_label, color = _colors[0])
-        plt.fill_between(x, C_dist, color = _colors[0], alpha=0.2)
-        plt.axvline(C_prior["prior_prob"], color = _colors[0], linestyle = "--", alpha = 0.5)
-        
-        plt.plot(x, T_dist, label = T_label, color = _colors[1])
-        plt.fill_between(x, T_dist, color = _colors[1], alpha=0.2)
-        plt.axvline(T_prior["prior_prob"], color = _colors[1], linestyle = "--", alpha = 0.5)
-    
-        plt.title(f'Prior Distributions ({prior_type})')
-        plt.xlabel('Conversion rate')
-        # plt.xlim(0, 1)
+        plt.title(f'Prior Distributions ({self.prior_type})')
+        plt.xlabel('Conversion rate' if self.prior_type == "beta" else 'Value')
         plt.ylim(bottom=0)
         plt.legend()
         plt.show()
-    
-    def plot_early_stopping_dist(self, results, k, interim_tests):
+            
+    def plot_early_stopping_dist(self, results, k, interim_tests, min_sample):
         # plot stopping criteria
         plt.axhline(y = 1, color = "black", linestyle = "--", linewidth = "0.6")
         plt.axhline(y = k, color = "black", linestyle = "--", linewidth = "0.6")
@@ -75,7 +71,10 @@ class visualisation_bayes:
         
         plt.scatter(0, 0, marker = ".", color = "green", label = f"H1: {h1_count}/{len(results)}")
         plt.scatter(0, 0, marker = ".", color = "red", label = f"H0: {h0_count}/{len(results)}")
-
+        
+        # minimum sample
+        plt.axvline(x = min_sample, color = "grey", label = f"Minimum sample: {min_sample}")
+        
         # Set the y-axis to log scale
         plt.legend()
         plt.yscale('log')
@@ -85,24 +84,24 @@ class visualisation_bayes:
         plt.title(f"Distributions of early stopping (n = {len(results)}, k = {k})")
         plt.show()
         
-    def plot_convergence_distribution(self, results):
-        # All observations
-        sns.kdeplot(results["sample_size"], label = "All experiments", fill = True, alpha = 0.5, clip = (0, results["sample_size"].max()), bw_adjust=0.25)
-        plt.xlabel('Sample size')
-        plt.title(f"Distributions of experiment termination sample size (n = {len(results)})")
-        plt.legend()
-        plt.show()
+    # def plot_convergence_distribution(self, results):
+    #     # All observations
+    #     sns.kdeplot(results["sample_size"], label = "All experiments", fill = True, alpha = 0.5, clip = (0, results["sample_size"].max()), bw_adjust=0.25)
+    #     plt.xlabel('Sample size')
+    #     plt.title(f"Distributions of experiment termination sample size (n = {len(results)})")
+    #     plt.legend()
+    #     plt.show()
         
-        # Separate distributions for Bayes Factor stopping for H1/H0 respectively
-        sns.kdeplot(results[results["bayes_factor"] >= 1]["sample_size"], label = f"H1 ({len(results[results['bayes_factor'] >= 1])})", fill = True, alpha = 0.5, clip = (0, results["sample_size"].max()))
-        sns.kdeplot(results[results["bayes_factor"] < 1]["sample_size"], label = f"H0 ({len(results[results['bayes_factor'] < 1])})", fill = True, alpha = 0.5, clip = (0, results["sample_size"].max()))
+    #     # Separate distributions for Bayes Factor stopping for H1/H0 respectively
+    #     sns.kdeplot(results[results["bayes_factor"] >= 1]["sample_size"], label = f"H1 ({len(results[results['bayes_factor'] >= 1])})", fill = True, alpha = 0.5, clip = (0, results["sample_size"].max()))
+    #     sns.kdeplot(results[results["bayes_factor"] < 1]["sample_size"], label = f"H0 ({len(results[results['bayes_factor'] < 1])})", fill = True, alpha = 0.5, clip = (0, results["sample_size"].max()))
         
-        plt.xlabel('Sample size')
-        plt.legend()
-        plt.title(f"Distributions of experiment termination sample size (n = {len(results)})")
-        plt.show()
+    #     plt.xlabel('Sample size')
+    #     plt.legend()
+    #     plt.title(f"Distributions of experiment termination sample size (n = {len(results)})")
+    #     plt.show()
     
-    def post_prob_over_time(self, interim_tests, prior_odds):
+    def post_prob_over_time(self, interim_tests, prior_odds, min_sample):
         # Initialise
         interim_tests_post_prob = []
         
@@ -143,6 +142,9 @@ class visualisation_bayes:
         plt.errorbar(x, column_medians, yerr=[column_medians - lb, ub - column_medians], fmt='o', color = _colors[0], alpha = 0.5) # Confidence interval
         plt.plot(x, column_means, label = 'Mean', color = _colors[1]) # Mean
         
+        # minimum sample
+        plt.axvline(x = min_sample, color = "grey", label = f"Minimum sample: {min_sample}")
+        
         # Settings
         plt.xlabel('Sample size')
         plt.ylabel('Posterior Probability Sign. Effect')
@@ -153,8 +155,8 @@ class visualisation_bayes:
         plt.show()
     
     def get_results(self):
-        self.plot_prior(self.T_prior, self.C_prior, self.prior_type)
-        self.plot_early_stopping_dist(self.results, self.k, self.interim_tests)
-        self.plot_convergence_distribution(self.results)
-        self.post_prob_over_time(self.interim_tests, self.prior_odds)
+        self.plot_prior()
+        self.plot_early_stopping_dist(self.results, self.k, self.interim_tests, self.min_sample)
+        # self.plot_convergence_distribution(self.results) # Uncomment if needed
+        self.post_prob_over_time(self.interim_tests, self.prior_odds, self.min_sample)
         
