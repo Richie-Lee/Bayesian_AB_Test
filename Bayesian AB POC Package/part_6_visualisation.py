@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore")
 _colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 class visualisation_bayes:
-    def __init__(self, T, C, early_stopping_settings, results, results_interim_tests, prior_odds, T_prior, C_prior, prior_type, H0_prior=None, H1_prior=None):
+    def __init__(self, T, C, early_stopping_settings, results, results_interim_tests, prior_odds, prior_type, T_prior=None, C_prior=None, H0_prior=None, H1_prior=None):
         self.C = C
         self.T = T
         self.k = early_stopping_settings["k"]

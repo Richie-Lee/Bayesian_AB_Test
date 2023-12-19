@@ -14,7 +14,7 @@ import part_5_repeat as p5_repeat
 import part_6_visualisation as p6_plot
 
 # Specify prior type: {beta, normal}
-prior_type = "normal"  # This can be switched to "normal"
+prior_type = "beta"  # This can be switched to "normal"
 
 # Define Control & Treatment DGP
 if prior_type == "beta":
@@ -95,14 +95,17 @@ metrics = metrics_calculator.get_values()
 """
 Part 5: Repeat
 """
-n_test = 1000 # number of iterations
+n_test = 100 # number of iterations
 print_progress = True 
 results, results_interim_tests = p5_repeat.multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_stopping_settings, n_test, print_progress)
 
 """
 Part 6: Visualisation
 """
-_visualisation = p6_plot.visualisation_bayes(T, C, early_stopping_settings, results, results_interim_tests, prior_odds, T_prior, C_prior, prior_type)
+if prior_type == "beta":
+    _visualisation = p6_plot.visualisation_bayes(T, C, early_stopping_settings, results, results_interim_tests, prior_odds, prior_type, T_prior, C_prior, None, None)
+elif prior_type == "normal":
+    _visualisation = p6_plot.visualisation_bayes(T, C, early_stopping_settings, results, results_interim_tests, prior_odds, prior_type, None, None, H0_prior, H1_prior)
 
 print(f"avg n = {results['sample_size'].mean()}")
 
