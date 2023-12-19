@@ -14,8 +14,11 @@ import part_5_repeat as p5_repeat
 import part_6_visualisation as p6_plot
 
 # Specify prior type: {beta, normal}
-prior_type = "beta"  # This can be switched to "normal"
+prior_type = "beta"  
 
+"""
+Part 1: DGP
+"""
 # Define Control & Treatment DGP
 if prior_type == "beta":
     C = {"n": 100_000, "true_prob": 0.4}
