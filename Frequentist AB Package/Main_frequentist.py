@@ -18,6 +18,9 @@ test_type = "naive t-test"
 data_type = "continuous" 
  
 
+"""
+Part 1: DGP
+"""
 # Define Control & Treatment DGP
 if data_type == "binary": # H0: C = T, H1: C != T
     C = {"n": 100_000, "true_prob": 0.4}
