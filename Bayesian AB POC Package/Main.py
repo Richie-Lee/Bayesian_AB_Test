@@ -20,13 +20,13 @@ prior_type = "beta"
 Part 1: DGP
 """
 # Define Control & Treatment DGP
-if prior_type == "beta":
+if prior_type == "beta": # H0: C = T, H1: C != T
     C = {"n": 100_000, "true_prob": 0.4}
-    T = {"n": 100_000, "true_prob": 0.41}
-elif prior_type == "normal":
+    T = {"n": 100_000, "true_prob": 0.39}
+elif prior_type == "normal": # H0: C > T, H1: C < T
     C = {"n": 100_000, "true_mean": 19.9, "true_variance": 3}
     T = {"n": 100_000, "true_mean": 20, "true_variance": 3}
-
+    
 # Part 1: Generate data
 if prior_type == "beta":
     # Bernoulli distributed Binary Data (Conversions)
