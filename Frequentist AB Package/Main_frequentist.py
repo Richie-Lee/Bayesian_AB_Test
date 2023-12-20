@@ -26,8 +26,8 @@ if data_type == "binary": # H0: C = T, H1: C != T
     C = {"n": 100_000, "true_prob": 0.4}
     T = {"n": 100_000, "true_prob": 0.41}
 elif data_type == "continuous": # H0: C > T, H1: C < T
-    C = {"n": 100_000, "true_mean": 20, "true_variance": 3}
-    T = {"n": 100_000, "true_mean": 20.2, "true_variance": 3}
+    C = {"n": 5000, "true_mean": 20.1, "true_variance": 3}
+    T = {"n": 5000, "true_mean": 20, "true_variance": 3}
 
 # Part 1: Generate data
 if data_type == "binary":
@@ -44,16 +44,13 @@ Part 3: p-value (skip part 2 - priors)
 """
 early_stopping_settings = {
     "alpha" : 0.05,
-    "interim_test_interval" : 1,
+    "interim_test_interval" : 10,
     "minimum_sample" : 500
     }
 
 if test_type == "naive t-test":
     p_value_calculator = p3_p.get_p_value(T, C, early_stopping_settings)
     p_value_fh, p_value_es, interim_tests, sample_size = p_value_calculator.get_values()
-    print("Fixed Horizon p-value:", p_value_fh)
-    print("Early Stop p-value:", p_value_es)
-    print("Sample size at early stop:", sample_size)
 
 """
 Part 4: Posterior & Inference
@@ -82,9 +79,9 @@ if data_type == "binary":
 if data_type == "continuous":
     print(f"H0: C > T -> {True if C['true_mean'] > T['true_mean'] else False}")
 
-
-
-
-
+# Count H0 rejections
+n_reject_es = (results['p_value'] < early_stopping_settings["alpha"]).sum()
+n_reject_fh = (results['p_value_fh'] < early_stopping_settings["alpha"]).sum()
+print(f"ES: {n_reject_es}/{n_test} \nFH: {n_reject_fh}/{n_test}")
 
 
