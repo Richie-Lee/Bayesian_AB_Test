@@ -10,13 +10,14 @@ warnings.filterwarnings("ignore")
 _colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 class visualisation_frequentist:
-    def __init__(self, T, C, early_stopping_settings, results, results_interim_tests, test_type):
+    def __init__(self, T, C, early_stopping_settings, results, results_interim_tests, test_type, data_type):
         self.C = C
         self.T = T
         self.early_stopping_settings = early_stopping_settings
         self.results = results
         self.interim_tests = results_interim_tests
         self.test_type = test_type
+        self.data_type = data_type
         
     @staticmethod
     def get_obrien_fleming_alphas(T, C, early_stopping_settings):
@@ -120,7 +121,7 @@ class visualisation_frequentist:
         plt.title(f"p-value distribution over time with {test_type.upper()} ({len(interim_tests)} runs)")
         plt.show()
     
-    def power_curve(self, interim_tests, early_stopping_settings, test_type, T, C):  
+    def power_curve(self, interim_tests, early_stopping_settings, test_type, T, C, data_type):  
         # Initialise
         interim_tests_p_values = []
 
@@ -168,11 +169,32 @@ class visualisation_frequentist:
         # sample_size for each evaluation k
         sample_sizes_k = [early_stopping_settings["interim_test_interval"] * k for k in range(0, max_n_test)] # start range at 0 for plotting reasons 
         
-        # Plot empirical power curve
-        plt.plot(sample_sizes_k, ratio_rejected, label = "Ratio rejected")
+        # Plot empirical type-I error if H0 = TRUE, power curve otherwise
+        if data_type == "binary":
+            h0 = True if C["true_prob"] > T["true_prob"] else False
+        elif data_type == "continuous":
+            h0 = True if C["true_mean"] > T["true_mean"] else False
+        
+        if h0 == True:
+            plt.plot(sample_sizes_k, ratio_rejected, label = "Type-I error", color = "red")
+            # Critical values, (adjusted) alphas
+            if test_type == "naive t-test":
+                plt.axhline(y=early_stopping_settings["alpha"], color = "black", label = f"alpha = {early_stopping_settings['alpha']}")
+            elif test_type == "alpha spending":
+                ob_alphas = self.get_obrien_fleming_alphas(T, C, early_stopping_settings)
+                k, adjusted_alpha = zip(*ob_alphas) # unpack zip to plot OB adjusted alpha
+                plt.plot(k, adjusted_alpha, color = "black", label = f"OB adjusted alpha (K = {len(x)})")      
+            plt.title(f'Type-I error over time - {test_type.upper()}')
+        else:
+            plt.plot(sample_sizes_k, ratio_rejected, label = "Ratio rejected", color = "green")
+            plt.title(f'Power over time - {test_type.upper()}')
+        
+        # Minimum sample line
+        plt.axvline(x=early_stopping_settings["minimum_sample"], color="grey", label=f"Minimum sample: {early_stopping_settings['minimum_sample']}")
+
+        
         plt.xlabel('Sample size')
-        plt.ylabel('Ratio rejected')
-        plt.title(f'Power over time - {test_type.upper()}')
+        plt.ylabel('Ratio H0 rejected')
         plt.ylim(0, 1)  # Adjust as needed
         plt.legend(loc=(1.02, 0))
         plt.grid(axis='y', linestyle='--', alpha=0.7)
@@ -183,5 +205,5 @@ class visualisation_frequentist:
     def get_results(self):
         self.plot_early_stopping_dist(self.results, self.interim_tests, self.early_stopping_settings, self.T, self.C, self.test_type)
         self.p_value_over_time(self.interim_tests, self.early_stopping_settings, self.test_type, self.T, self.C)
-        power_curve = self.power_curve(self.interim_tests, self.early_stopping_settings, self.test_type, self.T, self.C)
-        return power_curve
+        self.power_curve(self.interim_tests, self.early_stopping_settings, self.test_type, self.T, self.C, self.data_type)
+    
