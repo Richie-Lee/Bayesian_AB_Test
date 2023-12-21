@@ -13,8 +13,9 @@ import part_5_repeat as p5_repeat
 import part_6_visualisation as p6_plot
 
 
-# Specify test type: {naive t-test}
-test_type = "naive t-test"
+# Specify test type: {naive t-test, alpha spending}
+# test_type = "naive t-test"
+test_type = "alpha spending"
 data_type = "continuous" 
  
 
@@ -23,9 +24,9 @@ Part 1: DGP
 """
 # Define Control & Treatment DGP
 if data_type == "binary": # H0: C = T, H1: C != T
-    C = {"n": 100_000, "true_prob": 0.4}
-    T = {"n": 100_000, "true_prob": 0.41}
-elif data_type == "continuous": # H0: C > T, H1: C < T
+    C = {"n": 5000, "true_prob": 0.4}
+    T = {"n": 5000, "true_prob": 0.41}
+elif data_type == "continuous": # H0: C = T, H1: C < T
     C = {"n": 5000, "true_mean": 20.1, "true_variance": 3}
     T = {"n": 5000, "true_mean": 20, "true_variance": 3}
 
@@ -48,9 +49,8 @@ early_stopping_settings = {
     "minimum_sample" : 500
     }
 
-if test_type == "naive t-test":
-    p_value_calculator = p3_p.get_p_value(T, C, early_stopping_settings)
-    p_value_fh, p_value_es, interim_tests, sample_size = p_value_calculator.get_values()
+p_value_calculator = p3_p.get_p_value(T, C, early_stopping_settings, test_type)
+p_value_fh, p_value_es, interim_tests, sample_size, alpha = p_value_calculator.get_values()
 
 """
 Part 4: Posterior & Inference
@@ -68,20 +68,20 @@ results, results_interim_tests = p5_repeat.multiple_iterations(T, C, data_type, 
 """
 Part 6: Visualisation
 """
-_visualisation = p6_plot.visualisation_frequentist(T, C, early_stopping_settings, results, results_interim_tests)
+_visualisation = p6_plot.visualisation_frequentist(T, C, early_stopping_settings, results, results_interim_tests, test_type)
 _visualisation.get_results()
 
 
 # Print true label & sample average
 print(f"avg n = {results['sample_size'].mean()}")
 if data_type == "binary":
-    print(f"H0: C > T -> {True if C['true_prob'] > T['true_prob'] else False}")
+    print(f"H0: C = T -> {True if C['true_prob'] > T['true_prob'] else False}")
 if data_type == "continuous":
-    print(f"H0: C > T -> {True if C['true_mean'] > T['true_mean'] else False}")
+    print(f"H0: C = T -> {True if C['true_mean'] > T['true_mean'] else False}")
 
-# Count H0 rejections
-n_reject_es = (results['p_value'] < early_stopping_settings["alpha"]).sum()
+# Count H0 rejections TO DO -> CORRECT DUE TO ALPHA SPENDING
+n_reject_es = (results['p_value'] < results["alpha"]).sum()
 n_reject_fh = (results['p_value_fh'] < early_stopping_settings["alpha"]).sum()
-print(f"ES: {n_reject_es}/{n_test} \nFH: {n_reject_fh}/{n_test}")
+print(f"ES: {n_reject_es}/{n_test} rejected\nFH: {n_reject_fh}/{n_test} rejected")
 
 

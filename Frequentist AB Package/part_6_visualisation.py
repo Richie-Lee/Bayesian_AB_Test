@@ -1,25 +1,36 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
+import math
+import part_3_p_values as p3_p
 
 warnings.filterwarnings("ignore")
 _colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 class visualisation_frequentist:
-    def __init__(self, T, C, early_stopping_settings, results, results_interim_tests):
+    def __init__(self, T, C, early_stopping_settings, results, results_interim_tests, test_type):
         self.C = C
         self.T = T
         self.early_stopping_settings = early_stopping_settings
         self.results = results
         self.interim_tests = results_interim_tests
+        self.test_type = test_type
+        
+    @staticmethod
+    def get_obrien_fleming_alphas(T, C, early_stopping_settings):
+        # Create pairs [i, n_i] for i'th test and the associated n (K = total nr of tests)
+        K = math.floor(T["n"] / early_stopping_settings["interim_test_interval"])
+        n_k = [early_stopping_settings["interim_test_interval"] * k for k in range(1, K + 1)]
+        alpha_k = [p3_p.get_p_value.calculate_adjusted_alpha_one_sided(k, K, early_stopping_settings["alpha"]) for k in range(1, K + 1)]
+        ob_alphas = list(zip(n_k, alpha_k))         
+        return ob_alphas
 
-    def plot_early_stopping_dist(self, results, interim_tests, early_stopping_settings):
-        plt.axhline(y = early_stopping_settings["alpha"], color = "black", linestyle = "--", linewidth = "0.6", label = f"Significance level: {early_stopping_settings['alpha']}")
-
+    def plot_early_stopping_dist(self, results, interim_tests, early_stopping_settings, T, C, test_type):
+        # Draw green lines for H1 (reject, identify effect) and red for H0 (accenpt, no effect / negative effect)
         h1_count, h0_count = 0, 0
         for i in range(len(interim_tests)):
             x, p_values = zip(*interim_tests[i])
-            if results["p_value"][i] < self.early_stopping_settings["alpha"]:
+            if results["p_value"][i] < self.results["alpha"][i]:
                 color_i = "green"
                 h1_count += 1
             else:
@@ -32,14 +43,22 @@ class visualisation_frequentist:
 
         plt.axvline(x = early_stopping_settings["minimum_sample"], color = "grey", label = f"Minimum sample: {early_stopping_settings['minimum_sample']}")
 
-        plt.legend()
+        # Alpha / Rejection line 
+        if test_type == "naive t-test":
+            plt.axhline(y=early_stopping_settings["alpha"], color = "black", label = f"alpha = {early_stopping_settings['alpha']}")
+        elif test_type == "alpha spending":
+            ob_alphas = self.get_obrien_fleming_alphas(T, C, early_stopping_settings)
+            x, y = zip(*ob_alphas) # unpack zip to plot OB adjusted alpha
+            plt.plot(x, y, color = "black", label = f"OB adjusted alpha (K = {len(x)})")
+
+        plt.legend(loc=(1.02, 0))
         plt.xlabel("Sample size")
         plt.ylabel("P-value")
         plt.ylim(0, 1)  # p-value range 0 to 1
-        plt.title(f"Distributions of early stopping (n = {len(results)}, alpha = {self.early_stopping_settings['alpha']})")
+        plt.title(f"p-values over time with {test_type} ({len(results)} runs)")
         plt.show()
 
-    def p_value_over_time(self, interim_tests, early_stopping_settings):
+    def p_value_over_time(self, interim_tests, early_stopping_settings, test_type, T, C):
         # Initialise
         interim_tests_p_values = []
     
@@ -57,7 +76,7 @@ class visualisation_frequentist:
                 p_values.append(p_values[-1])
                 x.append(x[-1] + self.early_stopping_settings["interim_test_interval"])
     
-            plt.plot(x, p_values, linestyle="-", alpha=0.3, linewidth=0.7, color=_colors[0])
+            # plt.plot(x, p_values, linestyle="-", alpha=0.3, linewidth=0.7, color=_colors[0]) # the lines that are used to create the confidence intervals
             interim_tests_p_values.append(p_values)
 
         # Convert to array for statistical processing
@@ -81,15 +100,24 @@ class visualisation_frequentist:
         # Minimum sample line
         plt.axvline(x=early_stopping_settings["minimum_sample"], color="grey", label=f"Minimum sample: {early_stopping_settings['minimum_sample']}")
 
+        # Alpha / Rejection line 
+        if test_type == "naive t-test":
+            plt.axhline(y=early_stopping_settings["alpha"], color = "black", label = f"alpha = {early_stopping_settings['alpha']}")
+        elif test_type == "alpha spending":
+            ob_alphas = self.get_obrien_fleming_alphas(T, C, early_stopping_settings)
+            x, y = zip(*ob_alphas) # unpack zip to plot OB adjusted alpha
+            plt.plot(x, y, color = "black", label = f"OB adjusted alpha (K = {len(x)})")
+        
         # Settings
         plt.xlabel('Sample size')
         plt.ylabel('P-value')
         plt.title('P-value over time')
         plt.ylim(0, 1)  # Adjust as needed
-        plt.legend(loc=(1.04, 0))
+        plt.legend(loc=(1.02, 0))
         plt.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.title(f"p-value distribution over time with {test_type} ({len(interim_tests)} runs)")
         plt.show()
 
     def get_results(self):
-        self.plot_early_stopping_dist(self.results, self.interim_tests, self.early_stopping_settings)
-        self.p_value_over_time(self.interim_tests, self.early_stopping_settings)
+        self.plot_early_stopping_dist(self.results, self.interim_tests, self.early_stopping_settings, self.T, self.C, self.test_type)
+        self.p_value_over_time(self.interim_tests, self.early_stopping_settings, self.test_type, self.T, self.C)
