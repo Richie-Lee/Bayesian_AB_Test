@@ -14,8 +14,7 @@ import part_6_visualisation as p6_plot
 
 
 # Specify test type: {naive t-test, alpha spending}
-# test_type = "naive t-test"
-test_type = "alpha spending"
+test_type = "naive t-test"
 data_type = "continuous" 
  
 
@@ -27,7 +26,7 @@ if data_type == "binary": # H0: C = T, H1: C != T
     C = {"n": 5000, "true_prob": 0.4}
     T = {"n": 5000, "true_prob": 0.41}
 elif data_type == "continuous": # H0: C = T, H1: C < T
-    C = {"n": 5000, "true_mean": 20.1, "true_variance": 3}
+    C = {"n": 5000, "true_mean": 19.9, "true_variance": 3}
     T = {"n": 5000, "true_mean": 20, "true_variance": 3}
 
 # Part 1: Generate data
@@ -61,7 +60,7 @@ metrics = metrics_calculator.get_values()
 """
 Part 5: Repeat
 """
-n_test = 100 # number of iterations
+n_test = 1000 # number of iterations
 print_progress = True 
 results, results_interim_tests = p5_repeat.multiple_iterations(T, C, data_type, test_type, early_stopping_settings, n_test, print_progress)
 
@@ -69,7 +68,7 @@ results, results_interim_tests = p5_repeat.multiple_iterations(T, C, data_type, 
 Part 6: Visualisation
 """
 _visualisation = p6_plot.visualisation_frequentist(T, C, early_stopping_settings, results, results_interim_tests, test_type)
-_visualisation.get_results()
+power_curve_data = _visualisation.get_results()
 
 
 # Print true label & sample average

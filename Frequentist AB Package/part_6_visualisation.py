@@ -4,6 +4,8 @@ import warnings
 import math
 import part_3_p_values as p3_p
 
+import pandas as pd
+
 warnings.filterwarnings("ignore")
 _colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
@@ -55,7 +57,7 @@ class visualisation_frequentist:
         plt.xlabel("Sample size")
         plt.ylabel("P-value")
         plt.ylim(0, 1)  # p-value range 0 to 1
-        plt.title(f"p-values over time with {test_type} ({len(results)} runs)")
+        plt.title(f"p-values over time with {test_type.upper()} ({len(results)} runs)")
         plt.show()
 
     def p_value_over_time(self, interim_tests, early_stopping_settings, test_type, T, C):
@@ -90,7 +92,7 @@ class visualisation_frequentist:
         quantile_lb, quantile_ub = 10, 90
         lb = np.percentile(p_values_array, quantile_lb, axis=0)
         ub = np.percentile(p_values_array, quantile_ub, axis=0)
-
+        
         # Plot the results
         plt.figure(figsize=(10, 6))
         plt.plot(x, column_medians, label='Median (q10-q90 interval)', color=_colors[0])
@@ -105,8 +107,8 @@ class visualisation_frequentist:
             plt.axhline(y=early_stopping_settings["alpha"], color = "black", label = f"alpha = {early_stopping_settings['alpha']}")
         elif test_type == "alpha spending":
             ob_alphas = self.get_obrien_fleming_alphas(T, C, early_stopping_settings)
-            x, y = zip(*ob_alphas) # unpack zip to plot OB adjusted alpha
-            plt.plot(x, y, color = "black", label = f"OB adjusted alpha (K = {len(x)})")
+            k, adjusted_alpha = zip(*ob_alphas) # unpack zip to plot OB adjusted alpha
+            plt.plot(k, adjusted_alpha, color = "black", label = f"OB adjusted alpha (K = {len(x)})")
         
         # Settings
         plt.xlabel('Sample size')
@@ -115,9 +117,71 @@ class visualisation_frequentist:
         plt.ylim(0, 1)  # Adjust as needed
         plt.legend(loc=(1.02, 0))
         plt.grid(axis='y', linestyle='--', alpha=0.7)
-        plt.title(f"p-value distribution over time with {test_type} ({len(interim_tests)} runs)")
+        plt.title(f"p-value distribution over time with {test_type.upper()} ({len(interim_tests)} runs)")
         plt.show()
+    
+    def power_curve(self, interim_tests, early_stopping_settings, test_type, T, C):  
+        # Initialise
+        interim_tests_p_values = []
 
+        # Get longest experiment:
+        max_n_test = max([len(i) for i in interim_tests])
+        print(max_n_test)
+
+        # Collect p-values
+        for i in range(len(interim_tests)):
+            x, p_values_tuple = zip(*interim_tests[i])
+            x = list(x)
+            p_values = list(p_values_tuple)  # Convert tuple to list
+
+            # Impute missing values (due to early stop) with NaN value
+            while len(p_values) < max_n_test:
+                p_values.append(np.nan)
+                x.append(x[-1] + self.early_stopping_settings["interim_test_interval"])
+
+            # plt.plot(x, p_values, linestyle="-", alpha=0.3, linewidth=0.7, color=_colors[0]) # the lines that are used to create the confidence intervals
+            interim_tests_p_values.append(p_values)
+
+        # Convert to array for statistical processing
+        p_values_array = np.array(interim_tests_p_values)
+        
+        # Initialize an empty array with the same shape as p_values_array
+        binary_array = np.zeros_like(p_values_array, dtype=int)
+
+        # Iterate over each row (each experiment run)
+        for i in range(p_values_array.shape[0]):
+            row = p_values_array[i]
+
+            # Find the last non-NaN value in the row
+            last_non_nan_index = np.where(~np.isnan(row))[0][-1]
+
+            # Set the corresponding value to 1 if it's below alpha_last
+            if row[last_non_nan_index] < 0.05: # ---------------------------------------:
+                binary_array[i, last_non_nan_index] = 1
+
+            # Set all subsequent values (NaNs) to 1
+            binary_array[i, last_non_nan_index + 1:] = 1
+        
+        rejection_counts = list(np.sum(binary_array, axis=0))
+        ratio_rejected = [x / len(interim_tests) for x in rejection_counts] # get ratio of experiments that terminated at each evaluation time
+        
+        # sample_size for each evaluation k
+        sample_sizes_k = [early_stopping_settings["interim_test_interval"] * k for k in range(0, max_n_test)] # start range at 0 for plotting reasons 
+        
+        # Plot empirical power curve
+        plt.plot(sample_sizes_k, ratio_rejected, label = "Ratio rejected")
+        plt.xlabel('Sample size')
+        plt.ylabel('Ratio rejected')
+        plt.title(f'Power over time - {test_type.upper()}')
+        plt.ylim(0, 1)  # Adjust as needed
+        plt.legend(loc=(1.02, 0))
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.show()
+        
+        return {"p_values": pd.DataFrame(p_values_array), "p_values_binary": pd.DataFrame(binary_array), "rejection_counts": rejection_counts, "ratio_rejected": ratio_rejected}
+    
     def get_results(self):
         self.plot_early_stopping_dist(self.results, self.interim_tests, self.early_stopping_settings, self.T, self.C, self.test_type)
         self.p_value_over_time(self.interim_tests, self.early_stopping_settings, self.test_type, self.T, self.C)
+        power_curve = self.power_curve(self.interim_tests, self.early_stopping_settings, self.test_type, self.T, self.C)
+        return power_curve
