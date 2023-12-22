@@ -25,13 +25,14 @@ class visualisation_bayes:
         self.H0_prior = H0_prior
         self.H1_prior = H1_prior
         self.prior_type = prior_type
+        self.early_stopping_settings = early_stopping_settings
         # Get true effect from simulated DGP (label)
         self.true_effect = T["true_prob"] - C["true_prob"] if self.prior_type == "beta" else None
         self.get_results()
     
     def plot_prior(self):
-        x = np.linspace(0, 1, 1000)
         if self.prior_type == "beta":
+            x = np.linspace(0, 1, 1000)
             C_dist = stats.beta.pdf(x, self.C_prior["alpha"], self.C_prior["beta"])
             T_dist = stats.beta.pdf(x, self.T_prior["alpha"], self.T_prior["beta"])
             C_label = f"Control: α = {self.C_prior['alpha']}, β = {self.C_prior['beta']}"
@@ -42,8 +43,18 @@ class visualisation_bayes:
             plt.plot(x, T_dist, label=T_label, color=_colors[1])
             plt.fill_between(x, T_dist, color=_colors[1], alpha=0.2)
         elif self.prior_type == "normal":
-            # Here you can implement visualization for normal priors if needed
-            pass
+            x_min = min(self.H0_prior["mean"] - 2 * np.sqrt(self.H0_prior["variance"]), self.H1_prior["mean"] - 2 * np.sqrt(self.H1_prior["variance"]))
+            x_max = max(self.H0_prior["mean"] + 2 * np.sqrt(self.H0_prior["variance"]), self.H1_prior["mean"] + 2 * np.sqrt(self.H1_prior["variance"]))
+            x = np.linspace(x_min, x_max, 1000)
+            H0_dist = stats.norm.pdf(x, self.H0_prior["mean"], self.H0_prior["variance"])
+            H1_dist = stats.norm.pdf(x, self.H1_prior["mean"], self.H1_prior["variance"])
+            H0_label = f"H0: N({self.H0_prior['mean']}, {self.H0_prior['variance']})"
+            H1_label = f"H0: N({self.H1_prior['mean']}, {self.H1_prior['variance']})"
+            # Plot distributions & means
+            plt.plot(x, H0_dist, label=H0_label, color=_colors[0])
+            plt.fill_between(x, H0_dist, color=_colors[0], alpha=0.2)
+            plt.plot(x, H1_dist, label=H1_label, color=_colors[1])
+            plt.fill_between(x, H1_dist, color=_colors[1], alpha=0.2)
 
         plt.title(f'Prior Distributions ({self.prior_type})')
         plt.xlabel('Conversion rate' if self.prior_type == "beta" else 'Value')
@@ -83,23 +94,6 @@ class visualisation_bayes:
         plt.ylim(1/(1.2*k), k*1.2) # symmetrical vertical range displayed
         plt.title(f"Distributions of early stopping (n = {len(results)}, k = {k})")
         plt.show()
-        
-    # def plot_convergence_distribution(self, results):
-    #     # All observations
-    #     sns.kdeplot(results["sample_size"], label = "All experiments", fill = True, alpha = 0.5, clip = (0, results["sample_size"].max()), bw_adjust=0.25)
-    #     plt.xlabel('Sample size')
-    #     plt.title(f"Distributions of experiment termination sample size (n = {len(results)})")
-    #     plt.legend()
-    #     plt.show()
-        
-    #     # Separate distributions for Bayes Factor stopping for H1/H0 respectively
-    #     sns.kdeplot(results[results["bayes_factor"] >= 1]["sample_size"], label = f"H1 ({len(results[results['bayes_factor'] >= 1])})", fill = True, alpha = 0.5, clip = (0, results["sample_size"].max()))
-    #     sns.kdeplot(results[results["bayes_factor"] < 1]["sample_size"], label = f"H0 ({len(results[results['bayes_factor'] < 1])})", fill = True, alpha = 0.5, clip = (0, results["sample_size"].max()))
-        
-    #     plt.xlabel('Sample size')
-    #     plt.legend()
-    #     plt.title(f"Distributions of experiment termination sample size (n = {len(results)})")
-    #     plt.show()
     
     def post_prob_over_time(self, interim_tests, prior_odds, min_sample):
         # Initialise
@@ -121,7 +115,7 @@ class visualisation_bayes:
                 y_post_prob.append(round(y_post_prob[-1])) # assume that it terminated at value closest to the final value (not guarenteed)
                 x.append(x[-1] + x[1]) # add new x_value (sample size), by adding the iteration step (i = 1) to the last observed n (i = -1)
             
-            plt.plot(x, y_post_prob, linestyle = "-", alpha = 0.3, linewidth = 0.7, color = _colors[0])
+            # plt.plot(x, y_post_prob, linestyle = "-", alpha = 0.3, linewidth = 0.7, color = _colors[0])
             interim_tests_post_prob.append(y_post_prob)
         
         # Collect all interim test posterior probabilities & format for post processing
@@ -154,9 +148,85 @@ class visualisation_bayes:
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.show()
     
+    def power_curve(self, interim_tests, early_stopping_settings, T, C, prior_type):  
+        # Initialise
+        interim_tests_bf = []
+
+        # Get longest experiment:
+        max_n_test = max([len(i) for i in interim_tests])
+        print(max_n_test)
+
+        # Collect p-values
+        for i in range(len(interim_tests)):
+            x, bf_tuple = zip(*interim_tests[i])
+            x = list(x)
+            bfs = list(bf_tuple)  # Convert tuple to list
+
+            # Impute missing values (due to early stop) with NaN value
+            while len(bfs) < max_n_test:
+                bfs.append(np.nan)
+                x.append(x[-1] + self.early_stopping_settings["interim_test_interval"])
+
+            # plt.plot(x, p_values, linestyle="-", alpha=0.3, linewidth=0.7, color=_colors[0]) # the lines that are used to create the confidence intervals
+            interim_tests_bf.append(bfs)
+
+        # Convert to array for statistical processing
+        bf_array = np.array(interim_tests_bf)
+        
+        # Initialize an empty array with the same shape as p_values_array
+        binary_array = np.zeros_like(bf_array, dtype=int)
+
+        # Iterate over each row (each experiment run)
+        for i in range(bf_array.shape[0]):
+            row = bf_array[i]
+
+            # Find the last non-NaN value in the row
+            last_non_nan_index = np.where(~np.isnan(row))[0][-1]
+
+            # Set the corresponding value to 1 (reject) if last bf is > 1
+            if row[last_non_nan_index] > 1: # ---------------------------------------:
+                binary_array[i, last_non_nan_index] = 1
+
+                # Set all subsequent values (NaNs) to 1
+                binary_array[i, last_non_nan_index + 1:] = 1
+            # else accept, if last bf is < 1 (note Bayesian early stops both sides)   
+            else:
+                # Set all subsequent values (NaNs) to 1
+                binary_array[i, last_non_nan_index + 1:] = 0
+        
+        rejection_counts = list(np.sum(binary_array, axis=0))
+        ratio_rejected = [x / len(interim_tests) for x in rejection_counts] # get ratio of experiments that terminated at each evaluation time
+        
+        # sample_size for each evaluation k
+        sample_sizes_k = [early_stopping_settings["interim_test_interval"] * k for k in range(0, max_n_test)] # start range at 0 for plotting reasons 
+        
+        # Plot empirical type-I error if H0 = TRUE, power curve otherwise
+        if prior_type == "beta":
+            h0 = True if C["true_prob"] == T["true_prob"] else False
+        elif prior_type == "normal":
+            h0 = True if C["true_mean"] > T["true_mean"] else False
+        
+        if h0 == True:
+            plt.plot(sample_sizes_k, ratio_rejected, label = "H0 rejected", color = "red")      
+            plt.title(f"Type-I error over time - {prior_type.upper()} prior (k = {early_stopping_settings['k']})")
+        else:
+            plt.plot(sample_sizes_k, ratio_rejected, label = "H0 rejected", color = "green")
+            plt.title(f"Power over time - {prior_type.upper()} (k = {early_stopping_settings['k']})")
+        
+        # Minimum sample line
+        plt.axvline(x=early_stopping_settings["minimum_sample"], color="grey", label=f"Minimum sample: {early_stopping_settings['minimum_sample']}")
+
+        plt.xlabel('Sample size')
+        plt.ylabel('Ratio correct classifications')
+        plt.ylim(0, 1)  # Adjust as needed
+        plt.legend(loc=(1.02, 0))
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.show()
+    
     def get_results(self):
-        self.plot_prior()
+        # self.plot_prior()
         self.plot_early_stopping_dist(self.results, self.k, self.interim_tests, self.min_sample)
         # self.plot_convergence_distribution(self.results) # Uncomment if needed
         self.post_prob_over_time(self.interim_tests, self.prior_odds, self.min_sample)
+        self.power_curve(self.interim_tests, self.early_stopping_settings, self.T, self.C, self.prior_type)
         

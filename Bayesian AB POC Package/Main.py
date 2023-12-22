@@ -14,7 +14,7 @@ import part_5_repeat as p5_repeat
 import part_6_visualisation as p6_plot
 
 # Specify prior type: {beta, normal}
-prior_type = "beta"  
+prior_type = "normal"  
 
 """
 Part 1: DGP
@@ -24,9 +24,9 @@ if prior_type == "beta": # H0: C = T, H1: C != T
     C = {"n": 100_000, "true_prob": 0.4}
     T = {"n": 100_000, "true_prob": 0.39}
 elif prior_type == "normal": # H0: C > T, H1: C < T
-    C = {"n": 100_000, "true_mean": 19.9, "true_variance": 3}
-    T = {"n": 100_000, "true_mean": 20, "true_variance": 3}
-    
+    C = {"n": 10000, "true_mean": 20, "true_variance": 3}
+    T = {"n": 10000, "true_mean": 20, "true_variance": 3}
+
 # Part 1: Generate data
 if prior_type == "beta":
     # Bernoulli distributed Binary Data (Conversions)
@@ -46,12 +46,12 @@ prior_odds = 1
 # Marginal likelihood prior (parameter prior)
 prior_parameters = {
     "beta": {
-        "T_prior_prob": 0.41, "T_weight": 1000,
+        "T_prior_prob": 0.39, "T_weight": 1000,
         "C_prior_prob": 0.4, "C_weight": 1000
     },
     "normal": {
         "mean_H0": 0, "variance_H0": 3,
-        "mean_H1": -0.3, "variance_H1": 3
+        "mean_H1": -0.1, "variance_H1": 3
     }
 }
 
@@ -69,7 +69,7 @@ Part 3: Bayes Factor
 """
 early_stopping_settings = {
     "prob_early_stopping" : 0.9,
-    "interim_test_interval" : 100,
+    "interim_test_interval" : 50,
     "minimum_sample" : 500
 }
 
@@ -112,6 +112,12 @@ elif prior_type == "normal":
 
 print(f"avg n = {results['sample_size'].mean()}")
 
+# Count H0 rejections
+n_reject_es = (results['bayes_factor'] > early_stopping_settings["k"]).sum()
+n_accept_es = (results['bayes_factor'] < 1 / early_stopping_settings["k"]).sum()
+n_reject_fh = (results['bayes_factor_fh'] > early_stopping_settings["k"]).sum()
+n_accept_fh = (results['bayes_factor_fh'] < 1 / early_stopping_settings["k"]).sum()
+print(f"ES: [H0: {n_accept_es}, H1: {n_reject_es}] \nFH: [H0: {n_accept_fh}, H1: {n_reject_fh}, Unconclusive {n_test - n_accept_fh - n_reject_fh}]")
 
 
 
