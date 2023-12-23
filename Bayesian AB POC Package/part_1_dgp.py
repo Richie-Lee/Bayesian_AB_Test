@@ -24,18 +24,11 @@ class get_real_data():
         self.df_raw = pd.read_csv(data_config["import_directory"]) 
         
         self.data_config = data_config
-        self.treatment = simulated_treatment_effect
-        
+        self.treatment = simulated_treatment_effect        
         self.SEED = SEED
-        
-        # Execute main method
-        self.get_values()
 
-    def start_time(self, df, data_config, df_raw):
-        # Skip if no custom start-time is provided (default 00:00)
-        if data_config["start_time_hour"] == 0 and data_config["start_time_minute"] == 0:
-            return df
-        
+
+    def start_time(self, df, data_config, df_raw):        
         # Slice dataset s.t. it starts at specified time
         df["time"] = pd.to_datetime(df[data_config["time_variable"]]).dt.time # parse time strings to time object
         start_time = time(data_config["start_time_hour"], data_config["start_time_minute"])
@@ -64,9 +57,6 @@ class get_real_data():
         return df
     
     def sample_ratio_mismatch(self, df):
-        # # Display the distribution of users in each group
-        # group_counts_before = df['group'].value_counts()
-        # print(group_counts_before)
         
         # Calculate the size of the smaller group
         group_counts_before = df['group'].value_counts()
@@ -88,11 +78,7 @@ class get_real_data():
         
         # Sort by time for chronological data (At this point, it should already be in datetime format)
         df = df.sort_values(by = "time", ascending = True)
-        
-        # # Display the distribution of users in each group (they should now have the same size)
-        # group_counts_after = df['group'].value_counts()
-        # print(group_counts_after)
-        
+
         return df
         
     def format_to_array(self, df, voi, data_config, SEED):
@@ -103,7 +89,6 @@ class get_real_data():
         # samples (df -> np array)
         C_sample = data_C_df[voi].to_numpy()
         T_sample = data_T_df[voi].to_numpy()
-        
         
         C = {"n": len(C_sample), "sample": C_sample, "true_mean": C_sample.mean(), "true_variance": C_sample.var(), "df": data_C_df}
         T = {"n": len(T_sample), "sample": T_sample, "true_mean": T_sample.mean(), "true_variance": T_sample.var(), "df": data_T_df}
