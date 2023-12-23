@@ -14,28 +14,47 @@ import part_5_repeat as p5_repeat
 import part_6_visualisation as p6_plot
 
 # Specify prior type: {beta, normal}
-prior_type = "normal"  
+prior_type = "normal"
+
+# Specify data type: {binary (bernoulli), continuous (normal), real}
+data_type = "real"
 
 """
 Part 1: DGP
 """
 # Define Control & Treatment DGP
-if prior_type == "beta": # H0: C = T, H1: C != T
+if data_type == "binary": # H0: C = T, H1: C != T
     C = {"n": 100_000, "true_prob": 0.4}
     T = {"n": 100_000, "true_prob": 0.39}
-elif prior_type == "normal": # H0: C > T, H1: C < T
-    C = {"n": 10000, "true_mean": 20, "true_variance": 3}
-    T = {"n": 10000, "true_mean": 20, "true_variance": 3}
+elif data_type == "continuous": # H0: C > T, H1: C < T
+    C = {"n": 20000, "true_mean": 20, "true_variance": 3}
+    T = {"n": 20000, "true_mean": 20.05, "true_variance": 3}
+elif data_type == "real":
+    data_config = {
+        "import_directory": "/Users/richie.lee/Downloads/uk_orders_21_10_2023.csv",
+        "voi": "order_food_total",
+        "time_variable": "order_datetime_local",
+        "start_time_hour": 22, "start_time_minute": 0,
+        "n": 10000,
+        }
+    # Choose 1 way to apply simulated treatment effect (other value should be None)
+    simulated_treatment_effect = {
+        "relative_treatment_effect": None, # format as multiplier, e.g. 5% lift should be "1.05"
+        "absolute_treatment_effect": 0, 
+        }
 
 # Part 1: Generate data
-if prior_type == "beta":
-    # Bernoulli distributed Binary Data (Conversions)
+if data_type == "binary":
+    # Bernoulli distributed Binary Data (e.g. Conversions)
     C["sample"], C["converted"], C["sample_conversion_rate"] = p1_dgp.get_bernoulli_sample(mean=C["true_prob"], n=C["n"])
     T["sample"], T["converted"], T["sample_conversion_rate"] = p1_dgp.get_bernoulli_sample(mean=T["true_prob"], n=T["n"])
-elif prior_type == "normal":
-    # Continuous data
+elif data_type == "continuous":
+    # Normal distributed continuous data
     C["sample"] = p1_dgp.get_normal_sample(mean=C["true_mean"], variance=C["true_variance"], n=C["n"])
     T["sample"] = p1_dgp.get_normal_sample(mean=T["true_mean"], variance=T["true_variance"], n=T["n"])
+elif data_type == "real":
+    real_data_collector = p1_dgp.get_real_data(data_config, simulated_treatment_effect, SEED)
+    C, T, real_data, voi = real_data_collector.get_values()
 
 """ 
 Part 2: Prior
@@ -50,8 +69,8 @@ prior_parameters = {
         "C_prior_prob": 0.4, "C_weight": 1000
     },
     "normal": {
-        "mean_H0": 0, "variance_H0": 3,
-        "mean_H1": -0.1, "variance_H1": 3
+        "mean_H0": 0.05, "variance_H0": 1,
+        "mean_H1": 0, "variance_H1": 1
     }
 }
 
@@ -68,7 +87,7 @@ elif prior_type == "normal":
 Part 3: Bayes Factor
 """
 early_stopping_settings = {
-    "prob_early_stopping" : 0.9,
+    "prob_early_stopping" : 0.99,
     "interim_test_interval" : 50,
     "minimum_sample" : 500
 }
@@ -100,7 +119,7 @@ Part 5: Repeat
 """
 n_test = 100 # number of iterations
 print_progress = True 
-results, results_interim_tests = p5_repeat.multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_stopping_settings, n_test, print_progress)
+results, results_interim_tests = p5_repeat.multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_stopping_settings, n_test, print_progress, data_type, data_config, simulated_treatment_effect)
 
 """
 Part 6: Visualisation

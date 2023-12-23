@@ -207,11 +207,11 @@ class visualisation_bayes:
             h0 = True if C["true_mean"] > T["true_mean"] else False
         
         if h0 == True:
-            plt.plot(sample_sizes_k, ratio_rejected, label = "H0 rejected", color = "red")      
+            plt.plot(sample_sizes_k, ratio_rejected, label = f"H0 rejected: {ratio_rejected[-1]} \n({ratio_rejected[-2]} excl inconclusive)", color = "red")      
             plt.title(f"Type-I error over time - {prior_type.upper()} prior (k = {early_stopping_settings['k']})")
         else:
-            plt.plot(sample_sizes_k, ratio_rejected, label = "H0 rejected", color = "green")
-            plt.title(f"Power over time - {prior_type.upper()} (k = {early_stopping_settings['k']})")
+            plt.plot(sample_sizes_k, ratio_rejected, label = f"H0 rejected: {ratio_rejected[-1]} \n({ratio_rejected[-2]} excl inconclusive)", color = "green")
+            plt.title(f"Power over time - {prior_type.upper()} prior (k = {early_stopping_settings['k']})")
         
         # Minimum sample line
         plt.axvline(x=early_stopping_settings["minimum_sample"], color="grey", label=f"Minimum sample: {early_stopping_settings['minimum_sample']}")
