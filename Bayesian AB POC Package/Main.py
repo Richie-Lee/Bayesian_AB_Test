@@ -119,7 +119,7 @@ Part 5: Repeat
 """
 n_test = 100 # number of iterations
 print_progress = True 
-results, results_interim_tests = p5_repeat.multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_stopping_settings, n_test, print_progress, data_type, data_config, simulated_treatment_effect)
+results, results_interim_tests = p5_repeat.multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_stopping_settings, n_test, print_progress, data_type, data_config, simulated_treatment_effect, voi)
 
 """
 Part 6: Visualisation

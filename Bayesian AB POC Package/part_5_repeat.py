@@ -6,7 +6,7 @@ import part_3_bayes_factors as p3_bf
 import part_4_inference as p4_metrics
 from datetime import datetime
 
-def multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_stopping_settings, n_test, print_progress, data_type, data_config, simulated_treatment_effect):    
+def multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_stopping_settings, n_test, print_progress, data_type, data_config, simulated_treatment_effect, voi):    
     startTime = datetime.now()
     results = []
     results_columns = ["seed", "sample_size", "P[H1|data]", "uplift", "P[T>C]", "loss", "bayes_factor", "bayes_factor_fh"]
@@ -26,9 +26,26 @@ def multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_st
             C["sample"] = p1_dgp.get_normal_sample(mean=C["true_mean"], variance=C["true_variance"], n=C["n"])
             T["sample"] = p1_dgp.get_normal_sample(mean=T["true_mean"], variance=T["true_variance"], n=T["n"])
         elif data_type == "real":
-            real_data_collector = p1_dgp.get_real_data(data_config, simulated_treatment_effect, SEED = i)
-            C, T, real_data, voi = real_data_collector.get_values()
-        
+            # Real data already has been imported and preprocessed - avoid repeating this -> monte carlo sampling            
+            # Random sample "n" observations from control/treatment to replicate monte carlo simulation on real data
+            if data_config["n"] >= min(len(C["df"]), len(T["df"])):
+                raise Exception(f"Unable to do monte carlo throughs simulation with requested sample size {data_config['n']} given data size (for control/treatment) {len(T['df'])}")
+            data_C_df = C["df"].sample(n = data_config["n"], random_state = i)
+            data_T_df = T["df"].sample(n = data_config["n"], random_state = i)
+            
+            # Sort by time for chronological data (At this point, it should already be in datetime format)
+            data_C_df = data_C_df.sort_values(by = "time", ascending = True)
+            data_T_df = data_T_df.sort_values(by = "time", ascending = True)
+                
+            # samples (df -> np array)
+            C_sample = data_C_df[voi].to_numpy()
+            T_sample = data_T_df[voi].to_numpy()
+            
+            C = {"n": len(C_sample), "sample": C_sample, "true_mean": C_sample.mean(), "true_variance": C_sample.var(), "df": C["df"]}
+            T = {"n": len(T_sample), "sample": T_sample, "true_mean": T_sample.mean(), "true_variance": T_sample.var(), "df": T["df"]}
+            
+
+            
         # Part 2: Prior
         prior_calculator = p2_prior.get_prior(prior_type, prior_parameters[prior_type])
         if prior_type == "beta":

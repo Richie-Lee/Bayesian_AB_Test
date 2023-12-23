@@ -100,26 +100,13 @@ class get_real_data():
         data_C_df = df[df['group'] == 'control']
         data_T_df = df[df['group'] == 'treatment']
         
-        # Random sample "n" observations from control/treatment to replicate monte carlo simulation on real data
-        if data_config["n"] >= min(len(data_C_df), len(data_T_df)):
-            raise Exception(f"Unable to do monte carlo throughs simulation with requested sample size {data_config['n']} given data size (for control/treatment) of {int(len(df)/2)}")
-        data_C_df = data_C_df.sample(n = data_config["n"], random_state = SEED)
-        data_T_df = data_T_df.sample(n = data_config["n"], random_state = SEED)
-        
-        # Sort by time for chronological data (At this point, it should already be in datetime format)
-        data_C_df = data_C_df.sort_values(by = "time", ascending = True)
-        data_T_df = data_T_df.sort_values(by = "time", ascending = True)
-            
         # samples (df -> np array)
         C_sample = data_C_df[voi].to_numpy()
         T_sample = data_T_df[voi].to_numpy()
         
-        # sample sizes
-        C_n = len(C_sample)
-        T_n = len(T_sample)
         
-        C = {"n": C_n, "sample": C_sample, "true_mean": C_sample.mean(), "true_variance": C_sample.var(), "df": data_C_df}
-        T = {"n": T_n, "sample": T_sample, "true_mean": T_sample.mean(), "true_variance": T_sample.var(), "df": data_T_df}
+        C = {"n": len(C_sample), "sample": C_sample, "true_mean": C_sample.mean(), "true_variance": C_sample.var(), "df": data_C_df}
+        T = {"n": len(T_sample), "sample": T_sample, "true_mean": T_sample.mean(), "true_variance": T_sample.var(), "df": data_T_df}
         
         # for universal naming, create voi column for voi 
         df["voi"] = df[voi]
