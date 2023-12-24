@@ -174,6 +174,8 @@ class visualisation_frequentist:
             h0 = True if C["true_prob"] > T["true_prob"] else False
         elif data_type == "continuous":
             h0 = True if C["true_mean"] > T["true_mean"] else False
+        elif data_type == "real":
+            h0 = True if C["true_mean"] > T["true_mean"] else False
         
         if h0 == True:
             plt.plot(sample_sizes_k, ratio_rejected, label = "Type-I error", color = "red")

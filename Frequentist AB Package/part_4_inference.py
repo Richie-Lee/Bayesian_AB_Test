@@ -15,6 +15,8 @@ class get_metrics():
             uplift = round(T["converted"]/T["n"] - C["converted"]/C["n"], 4)
         elif data_type == "continuous":
             uplift = round(np.mean(T["sample"]) - np.mean(C["sample"]), 4)
+        elif data_type == "real":
+            uplift = round(np.mean(T["sample"]) - np.mean(C["sample"]), 4)
         return uplift     
         
     def get_values(self):
