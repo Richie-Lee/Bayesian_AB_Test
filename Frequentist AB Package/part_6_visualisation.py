@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
-import math
 import part_3_p_values as p3_p
 
 import pandas as pd
@@ -10,7 +9,7 @@ warnings.filterwarnings("ignore")
 _colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 class visualisation_frequentist:
-    def __init__(self, T, C, early_stopping_settings, results, results_interim_tests, test_type, data_type, data_config):
+    def __init__(self, T, C, early_stopping_settings, results, results_interim_tests, test_type, data_type, data_config=None):
         self.C = C
         self.T = T
         self.early_stopping_settings = early_stopping_settings
@@ -183,7 +182,7 @@ class visualisation_frequentist:
         
         # Plot critical values: (adjusted) alphas
         if h0 == True:
-            plt.plot(sample_sizes_k, ratio_rejected, label = "Type-I error", color = "red")
+            plt.plot(sample_sizes_k, ratio_rejected, label = f"Type-I error ({ratio_rejected[-1]})", color = "red")
             if test_type == "naive t-test":
                 plt.axhline(y=early_stopping_settings["alpha"], color = "black", label = f"alpha = {early_stopping_settings['alpha']}")
             elif test_type == "alpha spending":
@@ -192,7 +191,7 @@ class visualisation_frequentist:
                 plt.plot(k, adjusted_alpha, color = "black", label = f"OB adjusted alpha (K = {len(x)})")      
             plt.title(f'Type-I error over time - {test_type.upper()}')
         else:
-            plt.plot(sample_sizes_k, ratio_rejected, label = "Ratio rejected", color = "green")
+            plt.plot(sample_sizes_k, ratio_rejected, label = f"Ratio rejected ({ratio_rejected[-1]})", color = "green")
             plt.title(f'Power over time - {test_type.upper()}')
         
         # Minimum sample line

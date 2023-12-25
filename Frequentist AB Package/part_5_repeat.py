@@ -5,7 +5,7 @@ import part_3_p_values as p3_p
 import part_4_inference as p4_metrics
 from datetime import datetime
 
-def multiple_iterations(T, C, data_type, test_type, early_stopping_settings, n_test, print_progress, data_config, voi):    
+def multiple_iterations(T, C, data_type, test_type, early_stopping_settings, n_test, print_progress, data_config=None, voi=None):    
     startTime = datetime.now()
     results = []
     results_columns = ["seed", "sample_size", "uplift", "p_value", "p_value_fh", "alpha"]

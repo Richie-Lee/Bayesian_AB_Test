@@ -14,7 +14,7 @@ import part_6_visualisation as p6_plot
 
 
 # Specify test type: {naive t-test, alpha spending}
-test_type = "alpha spending"
+test_type = "naive t-test"
 data_type = "real" 
  
 
@@ -38,7 +38,7 @@ elif data_type == "real": # H0: C > T, H1: C < T
         }
     # Choose 1 way to apply simulated treatment effect (other value should be None)
     simulated_treatment_effect = {
-        "relative_treatment_effect": 0.95, # format as multiplier, e.g. 5% lift should be "1.05" (H0 true if multiplier < 1)
+        "relative_treatment_effect": 1.01, # format as multiplier, e.g. 5% lift should be "1.05" (H0 true if multiplier < 1)
         "absolute_treatment_effect": None, 
         }
 
@@ -79,12 +79,12 @@ Part 5: Repeat
 """
 n_test = 100 # number of iterations
 print_progress = True 
-results, results_interim_tests = p5_repeat.multiple_iterations(T, C, data_type, test_type, early_stopping_settings, n_test, print_progress, data_config, voi)
+results, results_interim_tests = p5_repeat.multiple_iterations(T, C, data_type, test_type, early_stopping_settings, n_test, print_progress, data_config=data_config, voi=voi)
 
 """
 Part 6: Visualisation
 """
-_visualisation = p6_plot.visualisation_frequentist(T, C, early_stopping_settings, results, results_interim_tests, test_type, data_type, data_config)
+_visualisation = p6_plot.visualisation_frequentist(T, C, early_stopping_settings, results, results_interim_tests, test_type, data_type, data_config=data_config)
 power_curve_data = _visualisation.get_results()
 
 
