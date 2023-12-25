@@ -50,7 +50,7 @@ class visualisation_frequentist:
         plt.axvline(x = early_stopping_settings["minimum_sample"], color = "grey", label = f"Minimum sample: {early_stopping_settings['minimum_sample']}")
 
         # Alpha / Rejection line 
-        if test_type == "naive t-test":
+        if test_type in ["naive t-test", "always valid inference"]:
             plt.axhline(y=early_stopping_settings["alpha"], color = "black", label = f"alpha = {early_stopping_settings['alpha']}")
         elif test_type == "alpha spending":
             ob_alphas = self.get_obrien_fleming_alphas(max_n_test, early_stopping_settings)
@@ -107,7 +107,7 @@ class visualisation_frequentist:
         plt.axvline(x=early_stopping_settings["minimum_sample"], color="grey", label=f"Minimum sample: {early_stopping_settings['minimum_sample']}")
 
         # Alpha / Rejection line 
-        if test_type == "naive t-test":
+        if test_type in ["naive t-test", "always valid inference"]:
             plt.axhline(y=early_stopping_settings["alpha"], color = "black", label = f"alpha = {early_stopping_settings['alpha']}")
         elif test_type == "alpha spending":
             ob_alphas = self.get_obrien_fleming_alphas(max_n_test, early_stopping_settings)
@@ -174,16 +174,16 @@ class visualisation_frequentist:
         
         # Plot empirical type-I error if H0 = TRUE, power curve otherwise
         if data_type == "binary":
-            h0 = True if C["true_prob"] > T["true_prob"] else False
+            h0 = True if C["true_prob"] >= T["true_prob"] else False
         elif data_type == "continuous":
-            h0 = True if C["true_mean"] > T["true_mean"] else False
+            h0 = True if C["true_mean"] >= T["true_mean"] else False
         elif data_type == "real":
-            h0 = True if C["true_mean"] > T["true_mean"] else False
+            h0 = True if C["true_mean"] >= T["true_mean"] else False
         
         # Plot critical values: (adjusted) alphas
         if h0 == True:
             plt.plot(sample_sizes_k, ratio_rejected, label = f"Type-I error ({ratio_rejected[-1]})", color = "red")
-            if test_type == "naive t-test":
+            if test_type in ["naive t-test", "always valid inference"]:
                 plt.axhline(y=early_stopping_settings["alpha"], color = "black", label = f"alpha = {early_stopping_settings['alpha']}")
             elif test_type == "alpha spending":
                 ob_alphas = self.get_obrien_fleming_alphas(max_n_test, early_stopping_settings)

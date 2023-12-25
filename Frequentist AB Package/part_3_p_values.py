@@ -1,5 +1,6 @@
 from scipy import stats
 import math
+import numpy as np
 
 class get_p_value():
     def __init__(self, T, C, early_stopping_settings, test_type):
@@ -39,6 +40,28 @@ class get_p_value():
         adjusted_alpha = 1 - stats.norm.cdf(adjusted_z)
         return adjusted_alpha
 
+    def always_valid_p_value(self, T_sample, C_sample, early_stopping_settings):    
+        # Calculate Z as the difference of T and C sample respectively
+        Z = [t - c for t, c in zip(T_sample, C_sample)]
+        
+        # Get relevant stats
+        Z_n = np.mean(Z)
+        known_variance = np.var(Z)
+        sample_size = len(Z)
+        
+        # Normal prior of differences
+        theta_0, tau_squared = early_stopping_settings["avi_normal_prior_mean"], early_stopping_settings["avi_normal_prior_var"]
+        
+        # Calculate the mSPRT statistic Lambda_n_hat analytically
+        lambda_n_hat = np.sqrt(2 * known_variance / (2 * known_variance + sample_size * tau_squared)) * \
+                       np.exp((tau_squared * sample_size**2 * (Z_n - theta_0)**2) / 
+                              (4 * known_variance * (2 * known_variance + sample_size * tau_squared)))
+        
+        # Compute the sequential p-value
+        p_value = min(1, 1 / lambda_n_hat)
+        
+        return p_value
+    
     def get_values(self):
         """
         Perform sequential testing and determine the p-value for early stopping.
@@ -52,22 +75,28 @@ class get_p_value():
             K = math.floor(self.T["n"] / self.early_stopping_settings["interim_test_interval"])
 
         # Fixed Horizon
-        p_value_fixed_horizon = self.t_test_one_tailed(self.T["sample"], self.C["sample"])
+        if self.test_type in ["naive t-test", "alpha spending"]:
+            p_value_fixed_horizon = self.t_test_one_tailed(self.T["sample"], self.C["sample"])
+        elif self.test_type == "always valid inference":
+            p_value_fixed_horizon = self.always_valid_p_value(self.T["sample"], self.C["sample"], self.early_stopping_settings)
 
         # Early Stopping
         while n_observed <= len(self.T["sample"]):
             alpha = self.early_stopping_settings["alpha"]
             T_sample = self.T["sample"][:n_observed]
             C_sample = self.C["sample"][:n_observed]
-            p_value = self.t_test_one_tailed(T_sample, C_sample)
+            if self.test_type in ["naive t-test", "alpha spending"]:
+                p_value = self.t_test_one_tailed(T_sample, C_sample)
+            elif self.test_type == "always valid inference":
+                p_value = self.always_valid_p_value(T_sample, C_sample, self.early_stopping_settings)
             interim_tests.append((n_observed, p_value))
 
             # Check early stopping conditions based on the test type
             if n_observed >= min_sample:
                 if n_observed == len(self.T["sample"]):
                     break  # Full sample reached
-                elif self.test_type == "naive t-test" and p_value < alpha:
-                    break  # Early stopping for naive t-test
+                elif self.test_type in ["naive t-test", "always valid inference"] and p_value < alpha:
+                    break  # Early stopping for naive t-test / AVI with regular alpha
                 elif self.test_type == "alpha spending": 
                     if p_value < self.calculate_adjusted_alpha_one_sided(k, K, alpha):
                         alpha = self.calculate_adjusted_alpha_one_sided(k, K, alpha) # update to early stopping alpha
