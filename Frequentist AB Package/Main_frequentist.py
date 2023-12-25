@@ -84,7 +84,7 @@ results, results_interim_tests = p5_repeat.multiple_iterations(T, C, data_type, 
 """
 Part 6: Visualisation
 """
-_visualisation = p6_plot.visualisation_frequentist(T, C, early_stopping_settings, results, results_interim_tests, test_type, data_type)
+_visualisation = p6_plot.visualisation_frequentist(T, C, early_stopping_settings, results, results_interim_tests, test_type, data_type, data_config)
 power_curve_data = _visualisation.get_results()
 
 

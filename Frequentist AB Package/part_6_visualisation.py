@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 _colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 class visualisation_frequentist:
-    def __init__(self, T, C, early_stopping_settings, results, results_interim_tests, test_type, data_type):
+    def __init__(self, T, C, early_stopping_settings, results, results_interim_tests, test_type, data_type, data_config):
         self.C = C
         self.T = T
         self.early_stopping_settings = early_stopping_settings
@@ -18,17 +18,21 @@ class visualisation_frequentist:
         self.interim_tests = results_interim_tests
         self.test_type = test_type
         self.data_type = data_type
+        self.data_config = data_config
         
     @staticmethod
-    def get_obrien_fleming_alphas(T, C, early_stopping_settings):
+    def get_obrien_fleming_alphas(max_n_test, early_stopping_settings):
         # Create pairs [i, n_i] for i'th test and the associated n (K = total nr of tests)
-        K = math.floor(T["n"] / early_stopping_settings["interim_test_interval"])
+        K = max_n_test
         n_k = [early_stopping_settings["interim_test_interval"] * k for k in range(1, K + 1)]
         alpha_k = [p3_p.get_p_value.calculate_adjusted_alpha_one_sided(k, K, early_stopping_settings["alpha"]) for k in range(1, K + 1)]
         ob_alphas = list(zip(n_k, alpha_k))         
         return ob_alphas
 
     def plot_early_stopping_dist(self, results, interim_tests, early_stopping_settings, T, C, test_type):
+        # Get longest experiment:
+        max_n_test = max([len(i) for i in interim_tests])
+        
         # Draw green lines for H1 (reject, identify effect) and red for H0 (accenpt, no effect / negative effect)
         h1_count, h0_count = 0, 0
         for i in range(len(interim_tests)):
@@ -50,7 +54,7 @@ class visualisation_frequentist:
         if test_type == "naive t-test":
             plt.axhline(y=early_stopping_settings["alpha"], color = "black", label = f"alpha = {early_stopping_settings['alpha']}")
         elif test_type == "alpha spending":
-            ob_alphas = self.get_obrien_fleming_alphas(T, C, early_stopping_settings)
+            ob_alphas = self.get_obrien_fleming_alphas(max_n_test, early_stopping_settings)
             x, y = zip(*ob_alphas) # unpack zip to plot OB adjusted alpha
             plt.plot(x, y, color = "black", label = f"OB adjusted alpha (K = {len(x)})")
 
@@ -107,7 +111,7 @@ class visualisation_frequentist:
         if test_type == "naive t-test":
             plt.axhline(y=early_stopping_settings["alpha"], color = "black", label = f"alpha = {early_stopping_settings['alpha']}")
         elif test_type == "alpha spending":
-            ob_alphas = self.get_obrien_fleming_alphas(T, C, early_stopping_settings)
+            ob_alphas = self.get_obrien_fleming_alphas(max_n_test, early_stopping_settings)
             k, adjusted_alpha = zip(*ob_alphas) # unpack zip to plot OB adjusted alpha
             plt.plot(k, adjusted_alpha, color = "black", label = f"OB adjusted alpha (K = {len(x)})")
         
@@ -177,13 +181,13 @@ class visualisation_frequentist:
         elif data_type == "real":
             h0 = True if C["true_mean"] > T["true_mean"] else False
         
+        # Plot critical values: (adjusted) alphas
         if h0 == True:
             plt.plot(sample_sizes_k, ratio_rejected, label = "Type-I error", color = "red")
-            # Critical values, (adjusted) alphas
             if test_type == "naive t-test":
                 plt.axhline(y=early_stopping_settings["alpha"], color = "black", label = f"alpha = {early_stopping_settings['alpha']}")
             elif test_type == "alpha spending":
-                ob_alphas = self.get_obrien_fleming_alphas(T, C, early_stopping_settings)
+                ob_alphas = self.get_obrien_fleming_alphas(max_n_test, early_stopping_settings)
                 k, adjusted_alpha = zip(*ob_alphas) # unpack zip to plot OB adjusted alpha
                 plt.plot(k, adjusted_alpha, color = "black", label = f"OB adjusted alpha (K = {len(x)})")      
             plt.title(f'Type-I error over time - {test_type.upper()}')
