@@ -1,6 +1,8 @@
 from scipy import stats
 import math
 import numpy as np
+from scipy.stats import norm
+from scipy.integrate import quad
 
 class get_p_value():
     def __init__(self, T, C, early_stopping_settings, test_type):
@@ -41,6 +43,9 @@ class get_p_value():
         return adjusted_alpha
 
     def always_valid_p_value(self, T_sample, C_sample, early_stopping_settings):    
+        """
+        Calculate AVI adjusted p-value following: https://www.diva-portal.org/smash/record.jsf?pid=diva2%3A1323628&dswid=698
+        """
         # Calculate Z as the difference of T and C sample respectively
         Z = [t - c for t, c in zip(T_sample, C_sample)]
         
@@ -52,10 +57,42 @@ class get_p_value():
         # Normal prior of differences
         theta_0, tau_squared = early_stopping_settings["avi_normal_prior_mean"], early_stopping_settings["avi_normal_prior_var"]
         
-        # Calculate the mSPRT statistic Lambda_n_hat analytically
+        # Calculate the mSPRT statistic Lambda_n_hat analytically ()
         lambda_n_hat = np.sqrt(2 * known_variance / (2 * known_variance + sample_size * tau_squared)) * \
-                       np.exp((tau_squared * sample_size**2 * (Z_n - theta_0)**2) / 
+                        np.exp((tau_squared * sample_size**2 * (Z_n - theta_0)**2) / 
                               (4 * known_variance * (2 * known_variance + sample_size * tau_squared)))
+        
+        # Compute the sequential p-value
+        p_value = min(1, 1 / lambda_n_hat) 
+        return p_value
+    
+    def always_valid_p_value_one_sided(self, T_sample, C_sample, early_stopping_settings):
+        """
+        Calculate AVI adjusted p-value for a composite alternative hypothesis 
+        (theta > 0) using a one-sided test.
+        """
+        # Calculate Z as the difference of T and C sample respectively
+        Z = np.array(T_sample) - np.array(C_sample)
+        
+        # Get relevant stats
+        Z_n = np.mean(Z)
+        known_variance = np.var(Z, ddof=1)  # Using ddof=1 for sample variance
+        sample_size = len(Z)
+        
+        # Normal prior of differences for theta > 0
+        theta_0 = early_stopping_settings["avi_normal_prior_mean"]  # This should be 0 for our H0
+        tau_squared = early_stopping_settings["avi_normal_prior_var"]
+        
+        # Calculate the mSPRT statistic Lambda_n_hat analytically for theta > 0
+        # For theta > 0, the prior is a half-normal distribution
+        # We need to perform numerical integration since the prior is not centered at zero
+        def integrand(theta):
+            likelihood_ratio = np.exp(sample_size * (theta * Z_n - theta**2 / 2) / known_variance)
+            prior_density = norm.pdf(theta, loc=theta_0, scale=np.sqrt(tau_squared))
+            return likelihood_ratio * prior_density
+        
+        # Integrate from 0 to infinity for the composite alternative hypothesis
+        lambda_n_hat, _ = quad(integrand, 0, np.inf)
         
         # Compute the sequential p-value
         p_value = min(1, 1 / lambda_n_hat)
@@ -79,7 +116,9 @@ class get_p_value():
             p_value_fixed_horizon = self.t_test_one_tailed(self.T["sample"], self.C["sample"])
         elif self.test_type == "always valid inference":
             p_value_fixed_horizon = self.always_valid_p_value(self.T["sample"], self.C["sample"], self.early_stopping_settings)
-
+        elif self.test_type == "always valid inference one-sided":
+            p_value_fixed_horizon = self.always_valid_p_value_one_sided(self.T["sample"], self.C["sample"], self.early_stopping_settings)
+          
         # Early Stopping
         while n_observed <= len(self.T["sample"]):
             alpha = self.early_stopping_settings["alpha"]
@@ -89,13 +128,15 @@ class get_p_value():
                 p_value = self.t_test_one_tailed(T_sample, C_sample)
             elif self.test_type == "always valid inference":
                 p_value = self.always_valid_p_value(T_sample, C_sample, self.early_stopping_settings)
+            elif self.test_type == "always valid inference one-sided":
+                p_value = self.always_valid_p_value_one_sided(T_sample, C_sample, self.early_stopping_settings)
             interim_tests.append((n_observed, p_value))
 
             # Check early stopping conditions based on the test type
             if n_observed >= min_sample:
                 if n_observed == len(self.T["sample"]):
                     break  # Full sample reached
-                elif self.test_type in ["naive t-test", "always valid inference"] and p_value < alpha:
+                elif self.test_type in ["naive t-test", "always valid inference", "always valid inference one-sided"] and p_value < alpha:
                     break  # Early stopping for naive t-test / AVI with regular alpha
                 elif self.test_type == "alpha spending": 
                     if p_value < self.calculate_adjusted_alpha_one_sided(k, K, alpha):

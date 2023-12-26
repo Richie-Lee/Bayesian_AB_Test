@@ -13,8 +13,8 @@ import part_5_repeat as p5_repeat
 import part_6_visualisation as p6_plot
 
 
-# Specify test type: {naive t-test, alpha spending, always valid inference}
-test_type = "always valid inference"
+# Specify test type: {naive t-test, alpha spending, always valid inference, always valid inference one-sided}
+test_type = "always valid inference one-sided"
 data_type = "continuous" 
  
 
@@ -27,7 +27,7 @@ if data_type == "binary": # H0: C > T, H1: C < T
     T = {"n": 50000, "true_prob": 0.4}
 elif data_type == "continuous": # H0: C > T, H1: C < T
     C = {"n": 5000, "true_mean": 20, "true_variance": 3}
-    T = {"n": 5000, "true_mean": 20, "true_variance": 3}
+    T = {"n": 5000, "true_mean": 19.9, "true_variance": 3}
 elif data_type == "real": # H0: C > T, H1: C < T
     data_config = {
         "import_directory": "/Users/richie.lee/Downloads/uk_orders_21_10_2023.csv",
@@ -78,7 +78,7 @@ metrics = metrics_calculator.get_values()
 """
 Part 5: Repeat
 """
-n_test = 10 # number of iterations
+n_test = 100 # number of iterations
 print_progress = True 
 results, results_interim_tests = p5_repeat.multiple_iterations(T, C, data_type, test_type, early_stopping_settings, n_test, print_progress, data_config=data_config, voi=voi)
 

@@ -50,7 +50,7 @@ class visualisation_frequentist:
         plt.axvline(x = early_stopping_settings["minimum_sample"], color = "grey", label = f"Minimum sample: {early_stopping_settings['minimum_sample']}")
 
         # Alpha / Rejection line 
-        if test_type in ["naive t-test", "always valid inference"]:
+        if test_type in ["naive t-test", "always valid inference", "always valid inference one-sided"]:
             plt.axhline(y=early_stopping_settings["alpha"], color = "black", label = f"alpha = {early_stopping_settings['alpha']}")
         elif test_type == "alpha spending":
             ob_alphas = self.get_obrien_fleming_alphas(max_n_test, early_stopping_settings)
@@ -107,7 +107,7 @@ class visualisation_frequentist:
         plt.axvline(x=early_stopping_settings["minimum_sample"], color="grey", label=f"Minimum sample: {early_stopping_settings['minimum_sample']}")
 
         # Alpha / Rejection line 
-        if test_type in ["naive t-test", "always valid inference"]:
+        if test_type in ["naive t-test", "always valid inference", "always valid inference one-sided"]:
             plt.axhline(y=early_stopping_settings["alpha"], color = "black", label = f"alpha = {early_stopping_settings['alpha']}")
         elif test_type == "alpha spending":
             ob_alphas = self.get_obrien_fleming_alphas(max_n_test, early_stopping_settings)
@@ -183,7 +183,7 @@ class visualisation_frequentist:
         # Plot critical values: (adjusted) alphas
         if h0 == True:
             plt.plot(sample_sizes_k, ratio_rejected, label = f"Type-I error ({ratio_rejected[-1]})", color = "red")
-            if test_type in ["naive t-test", "always valid inference"]:
+            if test_type in ["naive t-test", "always valid inference", "always valid inference one-sided"]:
                 plt.axhline(y=early_stopping_settings["alpha"], color = "black", label = f"alpha = {early_stopping_settings['alpha']}")
             elif test_type == "alpha spending":
                 ob_alphas = self.get_obrien_fleming_alphas(max_n_test, early_stopping_settings)
