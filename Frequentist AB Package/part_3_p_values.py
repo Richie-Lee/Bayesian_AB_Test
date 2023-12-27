@@ -28,7 +28,7 @@ class get_p_value():
         return p_one_tailed
    
     @staticmethod
-    def calculate_adjusted_alpha_one_sided(k, K, alpha):
+    def calculate_adjusted_alpha_one_sided_jet(k, K, alpha):
         """
         Calculate the O'Brien-Fleming adjusted alpha threshold for the k-th interim analysis.
         """
@@ -40,6 +40,26 @@ class get_p_value():
         
         # Convert the adjusted quantile back to an alpha level
         adjusted_alpha = 1 - stats.norm.cdf(adjusted_z)
+        return adjusted_alpha
+    
+    @staticmethod
+    def calculate_adjusted_alpha_one_sided(k, K, alpha):
+        """
+        Calculate the O'Brien-Fleming adjusted alpha threshold for the k-th interim analysis.\
+            - https://medium.com/towards-data-science/understanding-group-sequential-testing-befb35cec07a
+            - https://osf.io/preprints/psyarxiv/x4azm
+        """
+        
+        # Get std normal CDF & PPF (percent point funciton, inverse CDF)
+        ppf = stats.norm(0, 1).ppf
+        cdf = stats.norm(0, 1).cdf
+        
+        # default level hyperparameter rho is used, i.e. 1
+        t = k / K
+        rho = 1
+        
+        # Compute the standard normal quantile for the overall alpha level
+        adjusted_alpha = 2 * (1 -  cdf(ppf(1 - alpha/2) / t**(rho/2)))
         return adjusted_alpha
 
     def always_valid_p_value(self, T_sample, C_sample, early_stopping_settings):    

@@ -14,7 +14,7 @@ import part_6_visualisation as p6_plot
 
 
 # Specify test type: {naive t-test, alpha spending, always valid inference, always valid inference one-sided}
-test_type = "always valid inference one-sided"
+test_type = "alpha spending"
 data_type = "continuous" 
  
 
@@ -27,7 +27,7 @@ if data_type == "binary": # H0: C > T, H1: C < T
     T = {"n": 50000, "true_prob": 0.4}
 elif data_type == "continuous": # H0: C > T, H1: C < T
     C = {"n": 5000, "true_mean": 20, "true_variance": 3}
-    T = {"n": 5000, "true_mean": 19.9, "true_variance": 3}
+    T = {"n": 5000, "true_mean": 19.95, "true_variance": 3}
 elif data_type == "real": # H0: C > T, H1: C < T
     data_config = {
         "import_directory": "/Users/richie.lee/Downloads/uk_orders_21_10_2023.csv",
@@ -38,7 +38,7 @@ elif data_type == "real": # H0: C > T, H1: C < T
         }
     # Choose 1 way to apply simulated treatment effect (other value should be None)
     simulated_treatment_effect = {
-        "relative_treatment_effect": 1.005, # format as multiplier, e.g. 5% lift should be "1.05" (H0 true if multiplier < 1)
+        "relative_treatment_effect": 0.995, # format as multiplier, e.g. 5% lift should be "1.05" (H0 true if multiplier < 1)
         "absolute_treatment_effect": None, 
         }
 
@@ -62,7 +62,7 @@ Part 3: p-value (skip part 2 - priors)
 early_stopping_settings = {
     "alpha" : 0.05,
     "interim_test_interval" : 50,
-    "minimum_sample" : 1,
+    "minimum_sample" : 500,
     "avi_normal_prior_mean": 0, "avi_normal_prior_var": 1
     }
 
