@@ -14,20 +14,23 @@ import part_6_visualisation as p6_plot
 
 
 # Specify test type: {naive t-test, alpha spending, always valid inference, always valid inference one-sided}
-test_type = "alpha spending"
+test_type = "always valid inference one-sided"
 data_type = "continuous" 
  
 
 """
 Part 1: DGP
 """
+
+data_config, voi = "", ""
+
 # Define Control & Treatment DGP
 if data_type == "binary": # H0: C > T, H1: C < T
     C = {"n": 50000, "true_prob": 0.41}
     T = {"n": 50000, "true_prob": 0.4}
 elif data_type == "continuous": # H0: C > T, H1: C < T
-    C = {"n": 5000, "true_mean": 20, "true_variance": 3}
-    T = {"n": 5000, "true_mean": 19.95, "true_variance": 3}
+    C = {"n": 50000, "true_mean": 20, "true_variance": 3}
+    T = {"n": 50000, "true_mean": 20.05, "true_variance": 3}
 elif data_type == "real": # H0: C > T, H1: C < T
     data_config = {
         "import_directory": "/Users/richie.lee/Downloads/uk_orders_21_10_2023.csv",
@@ -60,7 +63,7 @@ elif data_type == "real":
 Part 3: p-value (skip part 2 - priors)
 """
 early_stopping_settings = {
-    "alpha" : 0.05,
+    "alpha" : 0.01,
     "interim_test_interval" : 50,
     "minimum_sample" : 500,
     "avi_normal_prior_mean": 0, "avi_normal_prior_var": 1
