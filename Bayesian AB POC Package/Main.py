@@ -17,29 +17,31 @@ import part_6_visualisation as p6_plot
 prior_type = "normal"
 
 # Specify data type: {binary (bernoulli), continuous (normal), real}
-data_type = "real"
+data_type = "continuous"
 
 """
 Part 1: DGP
 """
+data_config, voi, simulated_treatment_effect = "", "", ""
+
 # Define Control & Treatment DGP
 if data_type == "binary": # H0: C = T, H1: C != T
     C = {"n": 100_000, "true_prob": 0.4}
     T = {"n": 100_000, "true_prob": 0.39}
 elif data_type == "continuous": # H0: C > T, H1: C < T
-    C = {"n": 20000, "true_mean": 20, "true_variance": 3}
-    T = {"n": 20000, "true_mean": 20.05, "true_variance": 3}
+    C = {"n": 50000, "true_mean": 20, "true_variance": 3}
+    T = {"n": 50000, "true_mean": 20.05, "true_variance": 3}
 elif data_type == "real": # H0: C > T, H1: C < T
     data_config = {
         "import_directory": "/Users/richie.lee/Downloads/uk_orders_21_10_2023.csv",
         "voi": "order_food_total",
         "time_variable": "order_datetime_local",
         "start_time_hour": 0, "start_time_minute": 0,
-        "n": 10000,
+        "n": 50000,
         }
     # Choose 1 way to apply simulated treatment effect (other value should be None)
     simulated_treatment_effect = {
-        "relative_treatment_effect": 1.01, # format as multiplier, e.g. 5% lift should be "1.05"
+        "relative_treatment_effect": 1.1, # format as multiplier, e.g. 5% lift should be "1.05" (H0 true if multiplier < 1)
         "absolute_treatment_effect": None, 
         }
 
@@ -69,8 +71,8 @@ prior_parameters = {
         "C_prior_prob": 0.4, "C_weight": 1000
     },
     "normal": {
-        "mean_H0": 0.05, "variance_H0": 1,
-        "mean_H1": 0, "variance_H1": 1
+        "mean_H0": 0, "variance_H0": 1,
+        "mean_H1": 0.05, "variance_H1": 1
     }
 }
 
@@ -117,7 +119,7 @@ metrics = metrics_calculator.get_values()
 """
 Part 5: Repeat
 """
-n_test = 1000 # number of iterations
+n_test = 100 # number of iterations
 print_progress = True 
 results, results_interim_tests = p5_repeat.multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_stopping_settings, n_test, print_progress, data_type, data_config, simulated_treatment_effect, voi)
 

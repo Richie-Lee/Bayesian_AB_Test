@@ -19,10 +19,10 @@ def multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_st
             print(f"{i + 1}/{n_test}")
 
         # Part 1: Generate data
-        if data_type == "beta":
+        if data_type == "binary":
             C["sample"], C["converted"], C["sample_conversion_rate"] = p1_dgp.get_bernoulli_sample(mean=C["true_prob"], n=C["n"])
             T["sample"], T["converted"], T["sample_conversion_rate"] = p1_dgp.get_bernoulli_sample(mean=T["true_prob"], n=T["n"])
-        elif data_type == "normal":
+        elif data_type == "continuous":
             C["sample"] = p1_dgp.get_normal_sample(mean=C["true_mean"], variance=C["true_variance"], n=C["n"])
             T["sample"] = p1_dgp.get_normal_sample(mean=T["true_mean"], variance=T["true_variance"], n=T["n"])
         elif data_type == "real":
