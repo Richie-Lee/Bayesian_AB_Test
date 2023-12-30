@@ -6,6 +6,11 @@ SEED = 42
 np.random.seed(SEED)
 random.seed(SEED)
 
+# Save results of power curve
+save_results = True
+output_directory = "/Users/richie.lee/Downloads"
+
+
 import part_1_dgp as p1_dgp
 import part_3_p_values as p3_p
 import part_4_inference as p4_metrics
@@ -14,7 +19,7 @@ import part_6_visualisation as p6_plot
 
 
 # Specify test type: {naive t-test, alpha spending, always valid inference, always valid inference one-sided}
-test_type = "always valid inference one-sided"
+test_type = "naive t-test"
 data_type = "continuous" 
  
 
@@ -81,7 +86,7 @@ metrics = metrics_calculator.get_values()
 """
 Part 5: Repeat
 """
-n_test = 100 # number of iterations
+n_test = 10 # number of iterations
 print_progress = True 
 results, results_interim_tests = p5_repeat.multiple_iterations(T, C, data_type, test_type, early_stopping_settings, n_test, print_progress, data_config=data_config, voi=voi)
 
@@ -89,9 +94,11 @@ results, results_interim_tests = p5_repeat.multiple_iterations(T, C, data_type, 
 Part 6: Visualisation
 """
 _visualisation = p6_plot.visualisation_frequentist(T, C, early_stopping_settings, results, results_interim_tests, test_type, data_type, data_config=data_config)
-power_curve_data = _visualisation.get_results()
+power_curve_results = _visualisation.get_results()
 
-
+if save_results == True:
+    power_curve_results.to_excel(f"{output_directory}/bayes_{test_type}.xlsx",
+                                 sheet_name = test_type)  
 # Print true label & sample average
 print(f"avg n = {results['sample_size'].mean()}")
 if data_type == "binary":

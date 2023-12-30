@@ -205,10 +205,12 @@ class visualisation_frequentist:
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.show()
         
-        return {"p_values": pd.DataFrame(p_values_array), "p_values_binary": pd.DataFrame(binary_array), "rejection_counts": rejection_counts, "ratio_rejected": ratio_rejected}
+    
+        return pd.DataFrame(list(zip(sample_sizes_k, ratio_rejected)), columns = ["sample", f"bayesian {test_type}"])
     
     def get_results(self):
         self.plot_early_stopping_dist(self.results, self.interim_tests, self.early_stopping_settings, self.T, self.C, self.test_type)
         self.p_value_over_time(self.interim_tests, self.early_stopping_settings, self.test_type, self.T, self.C)
-        self.power_curve(self.interim_tests, self.early_stopping_settings, self.test_type, self.T, self.C, self.data_type)
-    
+        power_curve_results = self.power_curve(self.interim_tests, self.early_stopping_settings, self.test_type, self.T, self.C, self.data_type)
+        
+        return power_curve_results
