@@ -6,6 +6,10 @@ SEED = 42
 np.random.seed(SEED)
 random.seed(SEED)
 
+# Save results of power curve
+save_results = True
+output_directory = "/Users/richie.lee/Downloads"
+
 import part_1_dgp as p1_dgp
 import part_2_prior as p2_prior
 import part_3_bayes_factors as p3_bf
@@ -29,8 +33,8 @@ if data_type == "binary": # H0: C = T, H1: C != T
     C = {"n": 100_000, "true_prob": 0.4}
     T = {"n": 100_000, "true_prob": 0.39}
 elif data_type == "continuous": # H0: C > T, H1: C < T
-    C = {"n": 50000, "true_mean": 20, "true_variance": 3}
-    T = {"n": 50000, "true_mean": 20.05, "true_variance": 3}
+    C = {"n": 50000, "true_mean": 0, "true_variance": 1}
+    T = {"n": 50000, "true_mean": 0.05, "true_variance": 1}
 elif data_type == "real": # H0: C > T, H1: C < T
     data_config = {
         "import_directory": "/Users/richie.lee/Downloads/uk_orders_21_10_2023.csv",
@@ -89,7 +93,7 @@ elif prior_type == "normal":
 Part 3: Bayes Factor
 """
 early_stopping_settings = {
-    "prob_early_stopping" : 0.99,
+    "prob_early_stopping" : 0.95,
     "interim_test_interval" : 50,
     "minimum_sample" : 500
 }
@@ -131,6 +135,12 @@ if prior_type == "beta":
 elif prior_type == "normal":
     _visualisation = p6_plot.visualisation_bayes(T, C, early_stopping_settings, results, results_interim_tests, prior_odds, prior_type, None, None, H0_prior, H1_prior)
 
+if save_results == True:
+    power_curve_results = _visualisation.get_results()
+    power_curve_results.to_excel(f"{output_directory}/bayes_{prior_type}.xlsx",
+                                 sheet_name = prior_type)  
+
+
 print(f"avg n = {results['sample_size'].mean()}")
 
 # Count H0 rejections
@@ -139,7 +149,6 @@ n_accept_es = (results['bayes_factor'] < 1 / early_stopping_settings["k"]).sum()
 n_reject_fh = (results['bayes_factor_fh'] > early_stopping_settings["k"]).sum()
 n_accept_fh = (results['bayes_factor_fh'] < 1 / early_stopping_settings["k"]).sum()
 print(f"ES: [H0: {n_accept_es}, H1: {n_reject_es}] \nFH: [H0: {n_accept_fh}, H1: {n_reject_fh}, Unconclusive {n_test - n_accept_fh - n_reject_fh}]")
-
 
 
 

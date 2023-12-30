@@ -54,6 +54,27 @@ class get_bayes_factor():
         
         return bf
     
+    def normal_bf2(self, y, sigma_squared, H0_prior, H1_prior):
+        # Get parameters
+        mu_h0, sigma_h0 = H0_prior["mean"], np.sqrt(H0_prior["variance"])
+        mu_h1, sigma_h1 = H1_prior["mean"], np.sqrt(H1_prior["variance"])
+        
+        # Updated mean / standard deviation
+        mu_h0_prime = (y * sigma_h0**2 + mu_h0 * sigma_squared) / (sigma_h0**2 + sigma_squared)
+        mu_h1_prime = (y * sigma_h1**2 + mu_h1 * sigma_squared) / (sigma_h1**2 + sigma_squared)
+        sigma_h0_prime = np.sqrt(1 / (1/sigma_squared + 1/sigma_h0**2))
+        sigma_h1_prime = np.sqrt(1 / (1/sigma_squared + 1/sigma_h1**2))
+        
+        # Log likelihood for H0 and H1
+        log_likelihood_h0 = norm.logcdf(-mu_h0_prime / sigma_h0_prime) - norm.logcdf(-mu_h0 / sigma_h0)
+        log_likelihood_h1 = np.log(1 - norm.cdf(-mu_h1_prime / sigma_h1_prime)) - np.log(1 - norm.cdf(-mu_h1 / sigma_h1))
+        
+        # Calculate bayes factor
+        log_bf = log_likelihood_h1 - log_likelihood_h0
+        bf = np.exp(log_bf)
+        
+        return bf
+    
     def get_values(self):
         # Common setup for both beta and normal priors
         n_observed, interim_tests = 0, []

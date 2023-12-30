@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 # import seaborn as sns
 import numpy as np
 import scipy.stats as stats
+import pandas as pd
 # from tabulate import tabulate # pip install tabulate
 
 import warnings
@@ -154,7 +155,6 @@ class visualisation_bayes:
 
         # Get longest experiment:
         max_n_test = max([len(i) for i in interim_tests])
-        print(max_n_test)
 
         # Collect p-values
         for i in range(len(interim_tests)):
@@ -222,11 +222,14 @@ class visualisation_bayes:
         plt.legend(loc=(1.02, 0))
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.show()
+        
+        return pd.DataFrame(list(zip(sample_sizes_k, ratio_rejected)), columns = ["sample", f"bayesian {prior_type}"])
     
     def get_results(self):
         # self.plot_prior()
         self.plot_early_stopping_dist(self.results, self.k, self.interim_tests, self.min_sample)
         # self.plot_convergence_distribution(self.results) # Uncomment if needed
         self.post_prob_over_time(self.interim_tests, self.prior_odds, self.min_sample)
-        self.power_curve(self.interim_tests, self.early_stopping_settings, self.T, self.C, self.prior_type)
+        power_curve_values = self.power_curve(self.interim_tests, self.early_stopping_settings, self.T, self.C, self.prior_type)
         
+        return power_curve_values
