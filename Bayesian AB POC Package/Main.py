@@ -21,7 +21,7 @@ import part_6_visualisation as p6_plot
 prior_type = "normal"
 
 # Specify data type: {binary (bernoulli), continuous (normal), real}
-data_type = "continuous"
+data_type = "real"
 
 """
 Part 1: DGP
@@ -33,8 +33,8 @@ if data_type == "binary": # H0: C = T, H1: C != T
     C = {"n": 100_000, "true_prob": 0.4}
     T = {"n": 100_000, "true_prob": 0.39}
 elif data_type == "continuous": # H0: C > T, H1: C < T
-    C = {"n": 50000, "true_mean": 0, "true_variance": 1}
-    T = {"n": 50000, "true_mean": 0.05, "true_variance": 1}
+    C = {"n": 200000, "true_mean": 1, "true_variance": 1}
+    T = {"n": 200000, "true_mean": 1.01, "true_variance": 1}
 elif data_type == "real": # H0: C > T, H1: C < T
     data_config = {
         "import_directory": "/Users/richie.lee/Downloads/uk_orders_21_10_2023.csv",
@@ -45,9 +45,10 @@ elif data_type == "real": # H0: C > T, H1: C < T
         }
     # Choose 1 way to apply simulated treatment effect (other value should be None)
     simulated_treatment_effect = {
-        "relative_treatment_effect": 1.1, # format as multiplier, e.g. 5% lift should be "1.05" (H0 true if multiplier < 1)
+        "relative_treatment_effect": 1.01, # format as multiplier, e.g. 5% lift should be "1.05" (H0 true if multiplier < 1)
         "absolute_treatment_effect": None, 
         }
+
 
 # Part 1: Generate data
 if data_type == "binary":
@@ -75,8 +76,8 @@ prior_parameters = {
         "C_prior_prob": 0.4, "C_weight": 1000
     },
     "normal": {
-        "mean_H0": 0, "variance_H0": 1,
-        "mean_H1": 0.05, "variance_H1": 1
+        "mean_H0": 1, "variance_H0": 1,
+        "mean_H1": 1, "variance_H1": 1
     }
 }
 
@@ -88,14 +89,13 @@ elif prior_type == "normal":
     H0_prior, H1_prior = prior_calculator.get_values()  # For continuous data
 
 
-
 """ 
 Part 3: Bayes Factor
 """
 early_stopping_settings = {
-    "prob_early_stopping" : 0.95,
-    "interim_test_interval" : 50,
-    "minimum_sample" : 500
+    "prob_early_stopping" : 0.99,
+    "interim_test_interval" : 1000,
+    "minimum_sample" : 5000
 }
 
 if prior_type == "beta":
@@ -123,7 +123,7 @@ metrics = metrics_calculator.get_values()
 """
 Part 5: Repeat
 """
-n_test = 100 # number of iterations
+n_test = 1000 # number of iterations
 print_progress = True 
 results, results_interim_tests = p5_repeat.multiple_iterations(T, C, prior_odds, prior_type, prior_parameters, early_stopping_settings, n_test, print_progress, data_type, data_config, simulated_treatment_effect, voi)
 
