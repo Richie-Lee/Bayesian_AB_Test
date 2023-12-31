@@ -19,7 +19,7 @@ import part_6_visualisation as p6_plot
 
 
 # Specify test type: {naive t-test, alpha spending, always valid inference, always valid inference one-sided}
-test_type = "naive t-test"
+test_type = "alpha spending"
 data_type = "continuous" 
  
 
@@ -34,8 +34,8 @@ if data_type == "binary": # H0: C > T, H1: C < T
     C = {"n": 50000, "true_prob": 0.41}
     T = {"n": 50000, "true_prob": 0.4}
 elif data_type == "continuous": # H0: C > T, H1: C < T
-    C = {"n": 50000, "true_mean": 20, "true_variance": 3}
-    T = {"n": 50000, "true_mean": 20.05, "true_variance": 3}
+    C = {"n": 200_000, "true_mean": 1, "true_variance": 1}
+    T = {"n": 200_000, "true_mean": 1.1, "true_variance": 1}
 elif data_type == "real": # H0: C > T, H1: C < T
     data_config = {
         "import_directory": "/Users/richie.lee/Downloads/uk_orders_21_10_2023.csv",
@@ -46,7 +46,7 @@ elif data_type == "real": # H0: C > T, H1: C < T
         }
     # Choose 1 way to apply simulated treatment effect (other value should be None)
     simulated_treatment_effect = {
-        "relative_treatment_effect": 0.995, # format as multiplier, e.g. 5% lift should be "1.05" (H0 true if multiplier < 1)
+        "relative_treatment_effect": 1.05, # format as multiplier, e.g. 5% lift should be "1.05" (H0 true if multiplier < 1)
         "absolute_treatment_effect": None, 
         }
 
@@ -68,9 +68,9 @@ elif data_type == "real":
 Part 3: p-value (skip part 2 - priors)
 """
 early_stopping_settings = {
-    "alpha" : 0.01,
-    "interim_test_interval" : 50,
-    "minimum_sample" : 500,
+    "alpha" : 0.05,
+    "interim_test_interval" : 100,
+    "minimum_sample" : 1,
     "avi_normal_prior_mean": 0, "avi_normal_prior_var": 1
     }
 
@@ -86,7 +86,7 @@ metrics = metrics_calculator.get_values()
 """
 Part 5: Repeat
 """
-n_test = 10 # number of iterations
+n_test = 1_000 # number of iterations
 print_progress = True 
 results, results_interim_tests = p5_repeat.multiple_iterations(T, C, data_type, test_type, early_stopping_settings, n_test, print_progress, data_config=data_config, voi=voi)
 
@@ -97,8 +97,9 @@ _visualisation = p6_plot.visualisation_frequentist(T, C, early_stopping_settings
 power_curve_results = _visualisation.get_results()
 
 if save_results == True:
-    power_curve_results.to_excel(f"{output_directory}/bayes_{test_type}.xlsx",
+    power_curve_results.to_excel(f"{output_directory}/{test_type}.xlsx",
                                  sheet_name = test_type)  
+    
 # Print true label & sample average
 print(f"avg n = {results['sample_size'].mean()}")
 if data_type == "binary":

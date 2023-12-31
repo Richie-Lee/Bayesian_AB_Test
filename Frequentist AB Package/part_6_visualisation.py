@@ -206,7 +206,7 @@ class visualisation_frequentist:
         plt.show()
         
     
-        return pd.DataFrame(list(zip(sample_sizes_k, ratio_rejected)), columns = ["sample", f"bayesian {test_type}"])
+        return pd.DataFrame(list(zip(sample_sizes_k, ratio_rejected)), columns = ["sample", f"{test_type}"])
     
     def get_results(self):
         self.plot_early_stopping_dist(self.results, self.interim_tests, self.early_stopping_settings, self.T, self.C, self.test_type)
