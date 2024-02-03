@@ -5,6 +5,10 @@ import scipy.stats as stats
 import pandas as pd
 # from tabulate import tabulate # pip install tabulate
 
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.stats import gaussian_kde
+
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -133,21 +137,48 @@ class visualisation_bayes:
 
         # Plot the results        
         plt.figure(figsize=(10, 6))
-        plt.plot(x, column_medians, label = f'Median (q{quantile_lb}-q{quantile_ub} interval)', color = _colors[0]) # Median
+        plt.plot(x, column_medians, label = f'Median\n({quantile_lb}-{quantile_ub} quantile interval)', color = _colors[0]) # Median
         plt.errorbar(x, column_medians, yerr=[column_medians - lb, ub - column_medians], fmt='o', color = _colors[0], alpha = 0.5) # Confidence interval
         plt.plot(x, column_means, label = 'Mean', color = _colors[1]) # Mean
         
-        # minimum sample
-        plt.axvline(x = min_sample, color = "grey", label = f"Minimum sample: {min_sample}")
+        # # minimum sample
+        # plt.axvline(x = min_sample, color = "grey", label = f"Minimum sample: {min_sample}")
         
         # Settings
         plt.xlabel('Sample size')
-        plt.ylabel('Posterior Probability Sign. Effect')
-        plt.title(f'Posterior probability over time ({post_probs.shape[0]} experiments)')
+        plt.ylabel('Posterior Probability Sign. Effect (H1)')
+        # plt.title(f'Posterior probability over time ({post_probs.shape[0]} experiments)')
         plt.ylim(0, 1.05)
-        plt.legend(loc=(1.04, 0))
+        plt.legend()
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.show()
+    
+    def plot_convergence_distribution(self, results, T, C):
+        H0 = True if C["true_mean"] > T["true_mean"] else False
+        
+        # Function to create KDE plot
+        def kde_plot(data, label, color):
+            kde = gaussian_kde(data, bw_method=0.25)
+            x_range = np.linspace(0, data.max(), 500)
+            plt.plot(x_range, kde(x_range), label=label, color=color)
+            plt.fill_between(x_range, kde(x_range), alpha=0.5, color=color)
+    
+        # # All observations
+        # kde_plot(results["sample_size"], "All experiments", "blue")
+        # plt.xlabel('Sample size')
+        # plt.title(f"Distributions of experiment termination sample size (n = {len(results)})")
+        # plt.legend()
+        # plt.show()
+    
+        # Separate distributions for Bayes Factor stopping for H1/H0 respectively
+        plt.figure(figsize=(12, 4)) # width double size of height
+        kde_plot(results[results["bayes_factor"] < 1]["sample_size"], f'{"correct (H0)" if H0 else "Type-II error"} ({len(results[results["bayes_factor"] < 1])})', "green" if H0 else "red")
+        kde_plot(results[results["bayes_factor"] >= 1]["sample_size"], f'{"Type-I error" if H0 else "correct (H1)"} ({len(results[results["bayes_factor"] >= 1])})', "red" if H0 else "green")
+        plt.xlabel('Sample size')
+        plt.yticks([])  # Remove vertical axis ticks
+        plt.legend(fontsize='large')
+        plt.show()
+
     
     def power_curve(self, interim_tests, early_stopping_settings, T, C, prior_type):  
         # Initialise
@@ -228,7 +259,7 @@ class visualisation_bayes:
     def get_results(self):
         # self.plot_prior()
         self.plot_early_stopping_dist(self.results, self.k, self.interim_tests, self.min_sample)
-        # self.plot_convergence_distribution(self.results) # Uncomment if needed
+        # self.plot_convergence_distribution(self.results, self.T, self.C) # Uncomment if needed
         self.post_prob_over_time(self.interim_tests, self.prior_odds, self.min_sample)
         power_curve_values = self.power_curve(self.interim_tests, self.early_stopping_settings, self.T, self.C, self.prior_type)
         

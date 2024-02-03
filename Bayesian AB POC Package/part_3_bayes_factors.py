@@ -33,7 +33,7 @@ class get_bayes_factor():
     
         return bf
     
-    def normal_bf_new(self, y, sigma_squared, H0_prior, H1_prior):
+    def normal_bf_old(self, y, sigma_squared, H0_prior, H1_prior):
         # Get parameters
         mu_h0, sigma_h0 = H0_prior["mean"], np.sqrt(H0_prior["variance"])
         mu_h1, sigma_h1 = H1_prior["mean"], np.sqrt(H1_prior["variance"])
@@ -52,44 +52,40 @@ class get_bayes_factor():
         log_bf = log_likelihood_h1 + log_likelihood_h0
         bf = np.exp(log_bf)
         
-        # # Check for NAN
-        # if log_likelihood_h1 != log_likelihood_h1 or log_likelihood_h0 != log_likelihood_h0:
-        #     print(y, sigma_squared)
-        #     print(0.5 * np.log(sigma_h0**2 + sigma_squared), norm.logcdf(-mu_h0 / sigma_h0), norm.logcdf(-mu_h0_prime / sigma_h0_prime), 0.5 * (mu_h0 - y)**2 / (sigma_squared + sigma_h0**2))
-        #     print(- 0.5 * np.log(sigma_h1**2 + sigma_squared), np.log(1 - norm.cdf(-mu_h1_prime / sigma_h1_prime)), np.log(1 - norm.cdf(mu_h1 / sigma_h1)), - 0.5 * (mu_h1 - y)**2 / (sigma_squared + sigma_h1**2))
-            
-        
-        # print("y:", y, "sigma^2:", sigma_squared, "H1:", np.exp(log_likelihood_h1), "       H0: ", np.exp(-log_likelihood_h0))
-        
         return bf
     
-    def normal_bf(self, y, sigma_squared, H0_prior, H1_prior):
+    def normal_bf_new(self, y, sigma_squared, H0_prior, H1_prior):
         # Get parameters
         mu_h0, sigma_h0 = H0_prior["mean"], np.sqrt(H0_prior["variance"])
         mu_h1, sigma_h1 = H1_prior["mean"], np.sqrt(H1_prior["variance"])
-        
+
         # Updated mean / standard deviation
-        mu_h0_prime = (y * sigma_h0**2 + mu_h0 * sigma_squared) / (sigma_h0**2 + sigma_squared)
-        mu_h1_prime = (y * sigma_h1**2 + mu_h1 * sigma_squared) / (sigma_h1**2 + sigma_squared)
-        sigma_h0_prime = np.sqrt(1 / (1/sigma_squared + 1/sigma_h0**2))
-        sigma_h1_prime = np.sqrt(1 / (1/sigma_squared + 1/sigma_h1**2))
-        
-        # Log likelihood for H0 and H1
-        log_likelihood_h0 = norm.logcdf(-mu_h0_prime / sigma_h0_prime) - norm.logcdf(-mu_h0 / sigma_h0)
-        log_likelihood_h1 = np.log(1 - norm.cdf(-mu_h1_prime / sigma_h1_prime)) - np.log(1 - norm.cdf(-mu_h1 / sigma_h1))
-        
-        # Exponent term calculation
-        exponent_term = 0.5 * (
-            (mu_h1**2 / (sigma_squared + sigma_h1**2)) - (mu_h1_prime**2 / (sigma_squared + sigma_h1_prime**2)) +
-            (mu_h0_prime**2 / (sigma_squared + sigma_h0_prime**2)) - (mu_h0**2 / (sigma_squared + sigma_h0**2))
+        mu_h0_prime = (y * sigma_h0**2 + mu_h0 * sigma_squared) / (
+                sigma_h0**2 + sigma_squared
         )
-        
-    
+        mu_h1_prime = (y * sigma_h1**2 + mu_h1 * sigma_squared) / (
+                sigma_h1**2 + sigma_squared
+        )
+        sigma_h0_prime = np.sqrt(1 / (1 / sigma_squared + 1 / sigma_h0**2))
+        sigma_h1_prime = np.sqrt(1 / (1 / sigma_squared + 1 / sigma_h1**2))
+
+        # Log likelihood for H0 and H1
+        log_likelihood_h0 = (
+                - 0.5 * np.log(2 * np.pi * (sigma_h0**2 + sigma_squared))
+                + norm.logcdf(-mu_h0_prime / sigma_h0_prime)
+                - norm.logcdf(-mu_h0 / sigma_h0)
+                - 0.5 * (mu_h0 - y) ** 2 / (sigma_squared + sigma_h0**2)
+        )
+        log_likelihood_h1 = (
+                -0.5 * np.log(2 * np.pi * (sigma_h1**2 + sigma_squared))
+                + np.log(1 - norm.cdf(-mu_h1_prime / sigma_h1_prime))
+                - np.log(1 - norm.cdf(-mu_h1 / sigma_h1))
+                - 0.5 * (mu_h1 - y) ** 2 / (sigma_squared + sigma_h1**2)
+        )
+
         # Calculate bayes factor
-        log_bf = log_likelihood_h1 - log_likelihood_h0 + exponent_term
+        log_bf = log_likelihood_h1 - log_likelihood_h0
         bf = np.exp(log_bf)
-        
-        # print(np.exp(log_likelihood_h0), np.exp(log_likelihood_h1), exponent_term, "-> ", bf)
         
         return bf
     
@@ -135,9 +131,9 @@ class get_bayes_factor():
                 pooled_variance = np.var(T_sample)/len(T_sample) + np.var(C_sample)/len(C_sample)
                 bf = self.normal_bf_new(y_bar, pooled_variance, self.H0_prior, self.H1_prior) # --------------
                 interim_tests.append((n_observed, bf))
-                # if n_observed >= min_sample:
-                #     if (bf > k or bf < 1/k) or n_observed == self.T["n"]:
-                #         break
+                if n_observed >= min_sample:
+                    if (bf > k or bf < 1/k) or n_observed == self.T["n"]:
+                        break
 
                 n_observed += self.early_stopping_settings["interim_test_interval"]
 
